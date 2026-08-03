@@ -550,13 +550,13 @@ let registrations = [
   {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"EMA"},
   {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"EMA"},
   {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30", regNumber:"UK-MA-11890", authority:"MHRA"},
-  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"", authority:"Health Canada"},
-  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"", authority:"EMA"},
-  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"", authority:"PMDA"},
+  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"MDL-2026-3390", authority:"Health Canada"},
+  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"ES-2026-1187", authority:"EMA"},
+  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"JP-PMDA-70215", authority:"PMDA"},
   {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null, regNumber:"", authority:"TGA"},
   {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01", regNumber:"IN-CDSCO-5521", authority:"CDSCO"},
   {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null, regNumber:"", authority:"ANVISA"},
-  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20", regNumber:"", authority:"COFEPRIS"}
+  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20", regNumber:"MX-COFEPRIS-4471", authority:"COFEPRIS"}
 ];
 const SEED_DATA = JSON.stringify(registrations);
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -672,20 +672,24 @@ function renderRegisterTable(){
   let html = `<thead><tr>
     <th data-sort="product">Product <span class="arrow">${arrow("product")}</span></th>
     <th data-sort="country">Country / Region <span class="arrow">${arrow("country")}</span></th>
+    <th>Reg. Number</th>
+    <th>Authority</th>
     <th data-sort="urgency">Status <span class="arrow">${arrow("urgency")}</span></th>
     <th data-sort="expiry">Expiry <span class="arrow">${arrow("expiry")}</span></th>
     <th></th>
   </tr></thead><tbody>`;
 
   if(rows.length === 0){
-    html += `<tr><td colspan="5" style="color:var(--soft);padding:1.2rem .6rem;">No matching registrations.</td></tr>`;
+    html += `<tr><td colspan="7" style="color:var(--soft);padding:1.2rem .6rem;">No matching registrations.</td></tr>`;
   } else {
     rows.forEach(r => {
       const idx = registrations.indexOf(r);
       const region = (COUNTRY_META[r.country]||{}).region || "";
       html += `<tr>
-        <td data-label="Product">${r.product}${r.regNumber ? `<div style="color:var(--soft);font-size:.7rem;font-family:var(--mono);margin-top:2px;">${r.regNumber}</div>` : ''}</td>
-        <td data-label="Country">${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span>${r.authority ? `<div style="color:var(--soft);font-size:.7rem;margin-top:2px;">${r.authority}</div>` : ''}</td>
+        <td data-label="Product">${r.product}</td>
+        <td data-label="Country">${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span></td>
+        <td data-label="Reg. Number" style="font-family:var(--mono);font-size:.76rem;${r.regNumber ? 'color:var(--muted)' : 'color:var(--soft);font-style:italic'}">${r.regNumber || 'not on file'}</td>
+        <td data-label="Authority" style="${r.authority ? 'color:var(--muted)' : 'color:var(--soft);font-style:italic'}">${r.authority || 'not on file'}</td>
         <td data-label="Status"><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
         <td data-label="Expiry" style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
         <td data-label=""><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
