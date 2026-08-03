@@ -216,7 +216,10 @@
     .app{height:auto;min-height:100vh;}
     .topbar{flex-wrap:wrap;row-gap:.6rem;}
     .tabs{order:3;width:100%;overflow-x:auto;}
-    .kpi-strip{order:2;flex:1;min-width:0;}
+    .kpi-strip{order:2;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      scrollbar-width:none;scroll-behavior:smooth;}
+    .kpi-strip::-webkit-scrollbar{display:none;}
+    .kpi-strip .kpi{flex-shrink:0;}
     .util-bar{flex-wrap:wrap;row-gap:.4rem;}
     .util-badge{white-space:normal;}
     .util-spacer{flex-basis:100%;height:0;}
