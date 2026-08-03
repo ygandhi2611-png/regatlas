@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>RegAtlas — Regulatory Portfolio Register</title>
+<title>RegAtlas: Regulatory Portfolio Register</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
@@ -259,7 +259,7 @@
   </div>
 
   <div class="util-bar">
-    <span class="util-badge"><span class="live-dot"></span>No server storage — data stays in this session</span>
+    <span class="util-badge"><span class="live-dot"></span>No server storage: data stays in this session</span>
     <span class="util-spacer"></span>
     <span class="util-credit">Built by Yash Gandhi</span>
     <a href="https://www.linkedin.com/in/yash-gandhi26/" target="_blank" rel="noopener" class="btn-ghost util-link">LinkedIn →</a>
@@ -274,7 +274,7 @@
       </div>
       <button id="introDismiss" title="Hide this">×</button>
     </div>
-    <div class="intro-disclaimer">⚠ Health score weights are illustrative, not a regulator-issued metric. Not connected to any live regulatory data source — no such public source exists for company-level registration status.</div>
+    <div class="intro-disclaimer">⚠ Health score weights are illustrative, not a regulator-issued metric. Not connected to any live regulatory data source, since no such public source exists for company-level registration status.</div>
   </div>
 
   <div class="body-row">
@@ -336,6 +336,9 @@
               <span><i class="dot" style="background:#64748B"></i>Not filed</span>
               <span><i class="dot" style="background:#E3E5E9"></i>No data</span>
             </div>
+            <p style="font-size:.72rem;color:var(--soft);margin-top:.7rem;line-height:1.5;max-width:480px;text-align:center;">
+              A country's color reflects its <strong>most critical</strong> product status, not an average. One Expiring registration will color the whole country red even if nine others there are Approved. Hover for the full breakdown, click to see every product in that country.
+            </p>
           </div>
         </div>
       </div>
@@ -352,7 +355,7 @@
             <span class="panel-file">How It's Measured</span><span class="panel-tag">click to expand</span></div>
           <div class="panel-body">
             <p style="font-size:.79rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
-              A simple additive formula per product, starting at 100 — not an AI judgment, every point traces to a specific registration:
+              A simple additive formula per product, starting at 100. Not an AI judgment, every point traces to a specific registration:
             </p>
             <ul class="howto-formula">
               <li><span>−12</span> for each market marked <b>Not Filed</b></li>
@@ -411,19 +414,19 @@
     <div class="panel-chrome"><div class="panel-dots" title="Close"><span></span><span></span><span></span></div>
       <span class="panel-file">How to Use</span><span class="panel-tag"><button id="howtoClose" class="modal-x">×</button></span></div>
     <div class="panel-body">
-      <h3 class="howto-title">From registration data to portfolio clarity — in minutes</h3>
+      <h3 class="howto-title">From registration data to portfolio clarity, in minutes</h3>
       <div class="howto-steps">
         <div class="howto-step">
           <div class="howto-num">1</div>
-          <div><strong>Add your registrations</strong><p>Enter product, country, status, and expiry in the Register tab. No jargon required — just what you actually know about the product and market.</p></div>
+          <div><strong>Add your registrations</strong><p>Enter product, country, status, and expiry in the Register tab. No jargon required, just what you actually know about the product and market.</p></div>
         </div>
         <div class="howto-step">
           <div class="howto-num">2</div>
-          <div><strong>Explore by tab</strong><p>Switch between Register, Map, Health, Workload, and Timeline to see the same portfolio from different angles — geography, product risk, upcoming load, and lifecycle stage.</p></div>
+          <div><strong>Explore by tab</strong><p>Switch between Register, Map, Health, Workload, and Timeline to see the same portfolio from different angles: geography, product risk, upcoming load, and lifecycle stage.</p></div>
         </div>
         <div class="howto-step">
           <div class="howto-num">3</div>
-          <div><strong>Watch the Action Queue</strong><p>The panel on the right always shows what needs attention first — products flagged "At Risk" or "Watch," and registrations expiring soonest — no matter which tab you're on.</p></div>
+          <div><strong>Watch the Action Queue</strong><p>The panel on the right always shows what needs attention first: products flagged "At Risk" or "Watch," and registrations expiring soonest, no matter which tab you're on.</p></div>
         </div>
         <div class="howto-step">
           <div class="howto-num">4</div>
@@ -436,7 +439,7 @@
       </p>
 
       <p style="font-size:.73rem;color:var(--soft);line-height:1.6;margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border);">
-        Nothing here is sent to any server — your entries persist only within this browser session, and Export CSV is the only way data leaves this tool. RegAtlas is an educational portfolio project and does not constitute regulatory or legal advice; always verify against primary regulatory sources.
+        Nothing here is sent to any server. Your entries persist only within this browser session, and Export CSV is the only way data leaves this tool. RegAtlas is an educational portfolio project and does not constitute regulatory or legal advice; always verify against primary regulatory sources.
       </p>
     </div>
   </div>
@@ -534,7 +537,7 @@ function computeWorkload(){
 function computeTimeline(){
   return registrations.map(r => {
     const s = stageByStatus[r.status];
-    return {name:`${r.product} — ${r.country}`, stage:s.stage, pct:s.pct, color:fillByStatus[r.status]};
+    return {name:`${r.product} · ${r.country}`, stage:s.stage, pct:s.pct, color:fillByStatus[r.status]};
   });
 }
 
@@ -615,7 +618,7 @@ function renderRegisterTable(){
         <td>${r.product}</td>
         <td>${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span></td>
         <td><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
-        <td style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "—"}</td>
+        <td style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
         <td><button class="row-del" data-idx="${idx}" title="Remove">×</button></td>
       </tr>`;
     });
@@ -713,7 +716,7 @@ function renderActionRail(){
 
   let html = `<div class="rail-group"><h4>Products Needing Attention</h4>`;
   html += atRisk.length === 0
-    ? `<div class="rail-empty">Nothing flagged — all products healthy.</div>`
+    ? `<div class="rail-empty">Nothing flagged. All products healthy.</div>`
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
   html += `</div><div class="rail-group"><h4>Expiring Soonest</h4>`;
@@ -776,20 +779,20 @@ function worstStatusForCountry(country){
   return worst;
 }
 
-// Builds tooltip text for a country — lists each product individually
+// Builds tooltip text for a country. Lists each product individually
 // when there are few, falls back to a status-count summary once there
 // are too many to list line by line (5+), so it never grows unbounded.
 function buildCountrySummary(country){
   const rows = registrations.filter(r => r.country === country);
-  if(rows.length === 0) return `${country} — no data`;
+  if(rows.length === 0) return `${country}: no data`;
   if(rows.length <= 4){
-    return `${country}\n` + rows.map(r => `  ${r.product} — ${statusLabel[r.status]}`).join('\n');
+    return `${country}\n` + rows.map(r => `  ${r.product}: ${statusLabel[r.status]}`).join('\n');
   }
   const counts = {};
   rows.forEach(r => { counts[r.status] = (counts[r.status]||0) + 1; });
   const order = ["expiring","notfiled","pending","approved"];
   const parts = order.filter(s => counts[s]).map(s => `${counts[s]} ${statusLabel[s]}`);
-  return `${country} — ${rows.length} products\n  ${parts.join(' · ')}\n  (click for full list)`;
+  return `${country}: ${rows.length} products\n  ${parts.join(' · ')}\n  (click for full list)`;
 }
 function latLonToVec3(lat, lon, radius){
   const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180);
@@ -798,7 +801,7 @@ function latLonToVec3(lat, lon, radius){
 let globeScene, globeCamera, globeRenderer, globeGroup, pinGroup, globeRaycaster;
 let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null, hoveredCountry=null, didDragThisPress=false;
 let globeGeoPath=null, globeCanvas=null, globeCtx=null, globeTexture=null, globeCountries=null, globeAreaByISO={}, globeSphereMesh=null;
-const GLOBE_TW=2048, GLOBE_TH=1024, GLOBE_AREA_THRESHOLD=140; // px² in texture space — below this, use a pin instead
+const GLOBE_TW=2048, GLOBE_TH=1024, GLOBE_AREA_THRESHOLD=140; // px² in texture space; below this, use a pin instead
 
 function updateGlobeTexture(){
   if(!globeCtx || !globeCountries) return;
@@ -833,7 +836,7 @@ function updateGlobeTexture(){
   globeGroup = new THREE.Group();
   globeScene.add(globeGroup);
 
-  // Flat, unlit material — no ambient/directional lighting on the sphere
+  // Flat, unlit material; no ambient/directional lighting on the sphere
   // itself, which is what was causing the soft/hazy look. Colors render
   // exactly as drawn on the texture, crisp rather than diffused.
   const sphereGeo = new THREE.SphereGeometry(1.5, 64, 64);
@@ -855,7 +858,7 @@ function updateGlobeTexture(){
       globeCountries.forEach(f => { globeAreaByISO[+f.id] = globeGeoPath.area(f); });
 
       globeTexture = new THREE.CanvasTexture(globeCanvas);
-      // crisp, not mipmap-blurred — this is what makes a canvas texture
+      // crisp, not mipmap-blurred; this is what makes a canvas texture
       // look sharp instead of soft/hazy at this size
       globeTexture.minFilter = THREE.LinearFilter;
       globeTexture.magFilter = THREE.LinearFilter;
@@ -868,7 +871,7 @@ function updateGlobeTexture(){
       renderGlobe();
     }).catch(() => {});
 
-  // lat/long graticule — thin, subtle, purely a reference grid
+  // lat/long graticule: thin, subtle, purely a reference grid
   const graticuleMat = new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.28});
   const ringPoints=64, R=1.508;
   for(let latDeg=-60; latDeg<=60; latDeg+=30){
@@ -918,7 +921,7 @@ function updateGlobeTexture(){
 
     // otherwise, identify whatever real country is under the cursor on
     // the sphere's surface itself, using the same boundary data used to
-    // draw it — this is what makes any point on the globe identifiable,
+    // draw it; this is what makes any point on the globe identifiable,
     // not just the pinned tiny ones
     if(!globeSphereMesh || !globeCountries){ hoveredCountry=null; tooltip.style.opacity = 0; return; }
     const sphereHits = globeRaycaster.intersectObject(globeSphereMesh);
@@ -935,7 +938,7 @@ function updateGlobeTexture(){
     const trackedName = nameByISO[+feature.id];
     hoveredCountry = trackedName || null;
     const displayName = trackedName || feature.properties.name;
-    const label = trackedName ? buildCountrySummary(trackedName) : `${displayName} — no data`;
+    const label = trackedName ? buildCountrySummary(trackedName) : `${displayName}: no data`;
     tooltip.style.opacity = 1; tooltip.textContent = label;
     tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px";
   }
@@ -966,7 +969,7 @@ function renderGlobe(){
   const uniqueCountries = [...new Set(registrations.map(r => r.country))];
   uniqueCountries.forEach(country => {
     const meta = COUNTRY_META[country]; if(!meta || meta.lat===undefined) return;
-    // only pin countries too small to be colored on the texture itself —
+    // only pin countries too small to be colored on the texture itself;
     // mirrors the same area-based logic used on the flat map
     const bigEnough = (globeAreaByISO[meta.iso] || 0) >= GLOBE_AREA_THRESHOLD;
     if(bigEnough) return;
