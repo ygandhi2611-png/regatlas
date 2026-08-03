@@ -142,7 +142,7 @@
   .country-shape:hover{opacity:.8;}
   #globeWrap canvas{width:100% !important;height:100% !important;display:block;border-radius:50%;}
   #mapTooltip,#globeTooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--mono);
-    font-size:.7rem;padding:6px 10px;border-radius:3px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;}
+    font-size:.7rem;padding:6px 10px;border-radius:3px;opacity:0;transition:opacity .1s;white-space:pre;line-height:1.5;z-index:5;}
   .map-loading{font-size:.8rem;color:var(--soft);padding:2rem;text-align:center;}
 
   .gauge-item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.1rem;padding:.8rem .3rem;
@@ -775,12 +775,28 @@ function worstStatusForCountry(country){
   registrations.forEach(r => { if(r.country!==country) return; const p=statusPriority[r.status]||0; if(p>worstP){worstP=p; worst=r.status;} });
   return worst;
 }
+
+// Builds tooltip text for a country — lists each product individually
+// when there are few, falls back to a status-count summary once there
+// are too many to list line by line (5+), so it never grows unbounded.
+function buildCountrySummary(country){
+  const rows = registrations.filter(r => r.country === country);
+  if(rows.length === 0) return `${country} — no data`;
+  if(rows.length <= 4){
+    return `${country}\n` + rows.map(r => `  ${r.product} — ${statusLabel[r.status]}`).join('\n');
+  }
+  const counts = {};
+  rows.forEach(r => { counts[r.status] = (counts[r.status]||0) + 1; });
+  const order = ["expiring","notfiled","pending","approved"];
+  const parts = order.filter(s => counts[s]).map(s => `${counts[s]} ${statusLabel[s]}`);
+  return `${country} — ${rows.length} products\n  ${parts.join(' · ')}\n  (click for full list)`;
+}
 function latLonToVec3(lat, lon, radius){
   const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180);
   return new THREE.Vector3(-radius*Math.sin(phi)*Math.cos(theta), radius*Math.cos(phi), radius*Math.sin(phi)*Math.sin(theta));
 }
 let globeScene, globeCamera, globeRenderer, globeGroup, pinGroup, globeRaycaster;
-let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null;
+let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null, hoveredCountry=null, didDragThisPress=false;
 let globeGeoPath=null, globeCanvas=null, globeCtx=null, globeTexture=null, globeCountries=null, globeAreaByISO={}, globeSphereMesh=null;
 const GLOBE_TW=2048, GLOBE_TH=1024, GLOBE_AREA_THRESHOLD=140; // px² in texture space — below this, use a pin instead
 
@@ -874,9 +890,10 @@ function updateGlobeTexture(){
   const dom = globeRenderer.domElement;
   dom.style.cursor = "grab"; dom.style.touchAction = "none";
   function pointerDown(e){ globeDragging=true; globeAutoRotate=false; clearTimeout(globeResumeTimer);
-    globeLastX=e.clientX; globeLastY=e.clientY; dom.style.cursor="grabbing"; }
+    globeLastX=e.clientX; globeLastY=e.clientY; dom.style.cursor="grabbing"; didDragThisPress=false; }
   function pointerMove(e){
     if(!globeDragging){ handleGlobeHover(e); return; }
+    didDragThisPress = true;
     const dx=e.clientX-globeLastX, dy=e.clientY-globeLastY; globeLastX=e.clientX; globeLastY=e.clientY;
     globeGroup.rotation.y += dx*0.006;
     globeGroup.rotation.x = Math.max(-1.1, Math.min(1.1, globeGroup.rotation.x + dy*0.006));
@@ -893,7 +910,8 @@ function updateGlobeTexture(){
     const pinHits = globeRaycaster.intersectObjects(pinGroup.children);
     if(pinHits.length > 0){
       const d = pinHits[0].object.userData;
-      tooltip.style.opacity=1; tooltip.textContent=`${d.country} — ${statusLabel[d.status]}`;
+      hoveredCountry = d.country;
+      tooltip.style.opacity=1; tooltip.textContent=buildCountrySummary(d.country);
       tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px";
       return;
     }
@@ -902,9 +920,9 @@ function updateGlobeTexture(){
     // the sphere's surface itself, using the same boundary data used to
     // draw it — this is what makes any point on the globe identifiable,
     // not just the pinned tiny ones
-    if(!globeSphereMesh || !globeCountries){ tooltip.style.opacity = 0; return; }
+    if(!globeSphereMesh || !globeCountries){ hoveredCountry=null; tooltip.style.opacity = 0; return; }
     const sphereHits = globeRaycaster.intersectObject(globeSphereMesh);
-    if(sphereHits.length === 0){ tooltip.style.opacity = 0; return; }
+    if(sphereHits.length === 0){ hoveredCountry=null; tooltip.style.opacity = 0; return; }
 
     const local = globeGroup.worldToLocal(sphereHits[0].point.clone());
     const r = local.length();
@@ -912,12 +930,12 @@ function updateGlobeTexture(){
     const lon = Math.atan2(local.z, -local.x) * (180/Math.PI) - 180;
 
     const feature = globeCountries.find(f => d3.geoContains(f, [lon, lat]));
-    if(!feature){ tooltip.style.opacity = 0; return; }
+    if(!feature){ hoveredCountry=null; tooltip.style.opacity = 0; return; }
 
     const trackedName = nameByISO[+feature.id];
+    hoveredCountry = trackedName || null;
     const displayName = trackedName || feature.properties.name;
-    const st = trackedName ? worstStatusForCountry(trackedName) : null;
-    const label = st ? `${displayName} — ${statusLabel[st]}` : `${displayName} — no data`;
+    const label = trackedName ? buildCountrySummary(trackedName) : `${displayName} — no data`;
     tooltip.style.opacity = 1; tooltip.textContent = label;
     tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px";
   }
@@ -925,6 +943,14 @@ function updateGlobeTexture(){
   window.addEventListener('pointermove', pointerMove);
   window.addEventListener('pointerup', pointerUp);
   dom.addEventListener('mouseleave', () => { document.getElementById('globeTooltip').style.opacity = 0; });
+  dom.addEventListener('click', () => {
+    if(!hoveredCountry || didDragThisPress) return;
+    filterQuery = hoveredCountry;
+    const input = document.getElementById('filterInput');
+    if(input) input.value = hoveredCountry;
+    switchTab('register');
+    renderRegisterTable();
+  });
 
   (function animateGlobe(){
     requestAnimationFrame(animateGlobe);
