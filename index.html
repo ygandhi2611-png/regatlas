@@ -133,6 +133,7 @@
   .tiny-marker{cursor:pointer;transition:opacity .12s,fill .5s var(--ease);}
   .tiny-marker:hover{opacity:.8;}
   .country-shape:hover{opacity:.8;}
+  #globeWrap canvas{width:100% !important;height:100% !important;display:block;border-radius:50%;}
   #mapTooltip,#globeTooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--mono);
     font-size:.7rem;padding:6px 10px;border-radius:3px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;}
   .map-loading{font-size:.8rem;color:var(--soft);padding:2rem;text-align:center;}
@@ -748,7 +749,7 @@ function updateGlobeTexture(){
 (function initGlobe(){
   const wrap = document.getElementById('globeWrap');
   if(!wrap || typeof THREE === "undefined") return;
-  const size = wrap.clientWidth || 230;
+  const size = wrap.clientWidth || 480;
 
   globeScene = new THREE.Scene();
   globeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
