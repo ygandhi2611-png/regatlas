@@ -251,7 +251,7 @@
           <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
             <span class="panel-file">Intake</span><span class="panel-tag"><span class="live-dot"></span>editable</span></div>
           <div class="panel-body">
-            <form id="regForm" class="form-row">
+            <form id="regForm" class="form-row" novalidate>
               <div class="field"><label for="inProduct">Product</label>
                 <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
                 <datalist id="productList"></datalist></div>
@@ -737,7 +737,7 @@ document.querySelectorAll('.panel-dots').forEach(dots => {
   });
 });
 
-let mapSvg = null, mapProjection = null, mapTooltipSel = null, mapWrapEl = null;
+let mapSvg = null, mapProjection = null, mapTooltipSel = null, mapWrapEl = null, mapAreaByISO = {};
 function renderMap(){
   const debugEl = document.getElementById('mapDebug');
   if(!mapSvg){
@@ -756,7 +756,9 @@ function renderMap(){
   // country's polygon correctly at this resolution (Singapore etc.).
   // Rebuilt on every render so added/removed countries update the set.
   const uniqueCountries = [...new Set(registrations.map(r => r.country))];
-  const markerData = uniqueCountries.map(name => [name, COUNTRY_META[name]]).filter(d => d[1] && mapProjection);
+  const AREA_THRESHOLD = 6; // px² — below this, treat as "no real shape to color"
+  const markerData = uniqueCountries.map(name => [name, COUNTRY_META[name]])
+    .filter(d => d[1] && mapProjection && (mapAreaByISO[d[1].iso] || 0) < AREA_THRESHOLD);
 
   mapSvg.select(".tiny-markers").selectAll("circle")
     .data(markerData, d => d[0])
@@ -816,6 +818,7 @@ function renderMap(){
       // stays correct as data changes, not just at initial load
       mapSvg.append("g").attr("class","tiny-markers");
       mapProjection = projection;
+      countries.forEach(f => { mapAreaByISO[+f.id] = path.area(f); });
       mapTooltipSel = tooltip;
       mapWrapEl = wrap;
 
