@@ -357,14 +357,31 @@
             <p style="font-size:.79rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
               A simple additive formula per product, starting at 100. Not an AI judgment, every point traces to a specific registration:
             </p>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
+              The numbers follow a severity scale, from mildly routine to actively urgent. A market waiting on a decision is normal and costs the least. A market you haven't even filed in yet is more concerning, since nothing is even in motion. A market about to lapse is the closest thing to an emergency here, so it costs the most. The two date-based penalties stack on top of that, since "expiring sometime" and "expiring in three weeks" are not the same level of urgent even under the same status label.
+            </p>
             <ul class="howto-formula">
-              <li><span>−12</span> for each market marked <b>Not Filed</b></li>
-              <li><span>−5</span> for each market marked <b>Pending</b></li>
-              <li><span>−18</span> for each market marked <b>Expiring</b></li>
+              <li><span>−5</span> for each market marked <b>Pending</b>: routine, still under review</li>
+              <li><span>−12</span> for each market marked <b>Not Filed</b>: nothing submitted yet</li>
+              <li><span>−18</span> for each market marked <b>Expiring</b>: active registration about to lapse</li>
               <li><span>−10</span> more if a registration's expiry is under 90 days away</li>
-              <li><span>−20</span> more if it's already past its expiry date</li>
+              <li><span>−20</span> more if it's already past its expiry date, the worst case</li>
             </ul>
             <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Clamped between 0–100. Weights are illustrative, not a regulator-issued metric.</p>
+
+            <h3 class="howto-title" style="font-size:.9rem;margin-top:1.2rem;">A worked example</h3>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;">
+              Say a product is registered in 4 countries: Approved in two, Pending in one, and Expiring in the fourth with 45 days left.
+            </p>
+            <ul class="howto-formula">
+              <li><span>0</span> for the two Approved markets, no penalty</li>
+              <li><span>−5</span> for the Pending market</li>
+              <li><span>−18</span> for the Expiring market</li>
+              <li><span>−10</span> more since that expiry is under 90 days away</li>
+            </ul>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem;">
+              Total penalty: 5 + 18 + 10 = 33. Score: 100 − 33 = <b>67</b>, which falls in the Watch band.
+            </p>
 
             <h3 class="howto-title" style="font-size:.92rem;margin-top:1rem;">What the bands mean</h3>
             <div class="band-row" style="border-left-color:var(--green)">
