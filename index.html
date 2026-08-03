@@ -13,14 +13,16 @@
 <meta property="og:title" content="RegAtlas: Regulatory Portfolio Register" />
 <meta property="og:description" content="A free regulatory portfolio register: map, globe, health score, expiry calendar, and lifecycle timeline, all driven from one dataset. Built for teams too small for enterprise RIM but past spreadsheet trackers." />
 <meta property="og:url" content="https://ygandhi2611-png.github.io/regatlas/" />
+<meta property="og:image" content="https://ygandhi2611-png.github.io/regatlas/assets/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary" />
 <meta name="twitter:title" content="RegAtlas: Regulatory Portfolio Register" />
 <meta name="twitter:description" content="A free regulatory portfolio register: map, globe, health score, expiry calendar, and lifecycle timeline, all driven from one dataset." />
+<meta name="twitter:image" content="https://ygandhi2611-png.github.io/regatlas/assets/og-image.png" />
 
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- d3, topojson-client, and three.js are lazy-loaded on first opening the Map tab (see loadMapLibraries in the script), not blocking initial page load -->
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   html{scroll-behavior:smooth;}
@@ -108,6 +110,7 @@
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
   .form-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:.9rem;}
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.9rem;}
   .field{display:flex;flex-direction:column;gap:4px;}
   .field label{font-family:var(--mono);font-size:.63rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);}
   .field input,.field select{font-family:var(--sans);font-size:.81rem;padding:8px 10px;border:1px solid var(--border-strong);
@@ -243,9 +246,20 @@
     .util-badge{white-space:normal;}
     .util-spacer{flex-basis:100%;height:0;}
     .form-row{grid-template-columns:1fr;}
+    .form-row-2{grid-template-columns:1fr;}
     .geo-row{grid-template-columns:1fr;}
     table.register{font-size:.76rem;}
     .modal-overlay{padding:1rem;}
+  }
+  @media (max-width:480px){
+    table.register thead{display:none;}
+    table.register, table.register tbody, table.register tr, table.register td{display:block;width:100%;}
+    table.register tr{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;padding:.6rem .8rem;background:var(--surface);}
+    table.register td{border-bottom:none;padding:.3rem 0;position:relative;}
+    table.register td[data-label]:not([data-label=""])::before{
+      content:attr(data-label);display:block;font-family:var(--mono);font-size:.62rem;color:var(--soft);
+      text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+    table.register td:last-child{position:absolute;top:.5rem;right:.6rem;padding:0;width:auto;}
   }
   @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important;transition-duration:.001s !important;}}
 </style>
@@ -305,18 +319,27 @@
           <div class="panel-chrome"><button class="panel-dots" type="button" title="Click to collapse/expand" aria-expanded="true"><span></span><span></span><span></span></button>
             <span class="panel-file">Intake</span><span class="panel-tag"><span class="live-dot"></span>editable</span></div>
           <div class="panel-body">
-            <form id="regForm" class="form-row" novalidate>
-              <div class="field"><label for="inProduct">Product</label>
-                <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
-                <datalist id="productList"></datalist></div>
-              <div class="field"><label for="inCountry">Country</label><select id="inCountry" required></select></div>
-              <div class="field"><label for="inStatus">Status</label>
-                <select id="inStatus" required>
-                  <option value="approved">Approved</option><option value="pending">Pending</option>
-                  <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
-                </select></div>
-              <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" /></div>
-              <button type="submit" class="btn-add">+ Add Entry</button>
+            <form id="regForm" novalidate>
+              <div class="form-row">
+                <div class="field"><label for="inProduct">Product</label>
+                  <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
+                  <datalist id="productList"></datalist></div>
+                <div class="field"><label for="inCountry">Country</label><select id="inCountry" required></select></div>
+                <div class="field"><label for="inStatus">Status</label>
+                  <select id="inStatus" required>
+                    <option value="approved">Approved</option><option value="pending">Pending</option>
+                    <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
+                  </select></div>
+                <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" /></div>
+                <button type="submit" class="btn-add">+ Add Entry</button>
+              </div>
+              <div class="form-row-2">
+                <div class="field"><label for="inRegNumber">Registration / license number (optional)</label>
+                  <input id="inRegNumber" placeholder="e.g. NDA-021234, DEV-CE-88214" /></div>
+                <div class="field"><label for="inAuthority">Health authority (optional)</label>
+                  <input id="inAuthority" list="authorityList" placeholder="e.g. FDA, EMA, MHRA, PMDA" />
+                  <datalist id="authorityList"></datalist></div>
+              </div>
             </form>
             <div class="form-toolbar">
               <button type="button" class="btn-ghost" id="btnExport">↓ Export CSV</button>
@@ -523,17 +546,17 @@ const COUNTRY_META = {
 const nameByISO = Object.fromEntries(Object.entries(COUNTRY_META).map(([k,v]) => [v.iso,k]));
 
 let registrations = [
-  {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02"},
-  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18"},
-  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18"},
-  {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30"},
-  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null},
-  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null},
-  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15"},
-  {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null},
-  {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01"},
-  {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null},
-  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20"}
+  {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02", regNumber:"NDA-021458", authority:"FDA"},
+  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"EMA"},
+  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"EMA"},
+  {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30", regNumber:"UK-MA-11890", authority:"MHRA"},
+  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"", authority:"Health Canada"},
+  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"", authority:"EMA"},
+  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"", authority:"PMDA"},
+  {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null, regNumber:"", authority:"TGA"},
+  {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01", regNumber:"IN-CDSCO-5521", authority:"CDSCO"},
+  {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null, regNumber:"", authority:"ANVISA"},
+  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20", regNumber:"", authority:"COFEPRIS"}
 ];
 const SEED_DATA = JSON.stringify(registrations);
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -594,7 +617,8 @@ function getFilteredSorted(){
   let list = registrations.filter(r => {
     if(!q) return true;
     const statusText = (statusLabel[r.status]||"").toLowerCase();
-    return r.product.toLowerCase().includes(q) || r.country.toLowerCase().includes(q) || statusText.includes(q);
+    return r.product.toLowerCase().includes(q) || r.country.toLowerCase().includes(q) || statusText.includes(q)
+      || (r.authority||"").toLowerCase().includes(q) || (r.regNumber||"").toLowerCase().includes(q);
   });
   list = [...list];
   list.sort((a,b) => {
@@ -618,7 +642,7 @@ function renderKPIs(){
     {n:productCount, l:"Products", action:"clear"},
     {n:total, l:"Registrations", action:"clear"},
     {n:expiring, l:"Expiring", action:"filter-expiring"},
-    {n:openEvents, l:"Dated Events", action:"goto-workload"}
+    {n:openEvents, l:"Expiry Dates", action:"goto-workload"}
   ];
   document.getElementById('kpiRow').innerHTML = kpis.map(k =>
     `<div class="kpi" data-action="${k.action}"><div class="n" data-target="${k.n}">0</div><div class="l">${k.l}</div></div>`
@@ -660,11 +684,11 @@ function renderRegisterTable(){
       const idx = registrations.indexOf(r);
       const region = (COUNTRY_META[r.country]||{}).region || "";
       html += `<tr>
-        <td>${r.product}</td>
-        <td>${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span></td>
-        <td><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
-        <td style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
-        <td><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
+        <td data-label="Product">${r.product}${r.regNumber ? `<div style="color:var(--soft);font-size:.7rem;font-family:var(--mono);margin-top:2px;">${r.regNumber}</div>` : ''}</td>
+        <td data-label="Country">${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span>${r.authority ? `<div style="color:var(--soft);font-size:.7rem;margin-top:2px;">${r.authority}</div>` : ''}</td>
+        <td data-label="Status"><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
+        <td data-label="Expiry" style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
+        <td data-label=""><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
       </tr>`;
     });
   }
@@ -793,9 +817,35 @@ function renderAll(){
   renderActionRail();
 }
 
+let mapLibrariesLoaded = false, mapLibrariesLoading = null;
+function loadMapLibraries(){
+  if(mapLibrariesLoaded) return Promise.resolve();
+  if(mapLibrariesLoading) return mapLibrariesLoading;
+  const sources = [
+    "https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js",
+    "https://cdn.jsdelivr.net/npm/topojson-client@3",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+  ];
+  mapLibrariesLoading = Promise.all(sources.map(src => new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  }))).then(() => { mapLibrariesLoaded = true; });
+  return mapLibrariesLoading;
+}
+
 function switchTab(name){
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+  if(name === 'map' && !mapLibrariesLoaded){
+    const tag = document.getElementById('globePanelTag');
+    if(tag) tag.textContent = 'loading map libraries…';
+    loadMapLibraries().then(() => {
+      initGlobe();
+    }).catch(() => {
+      if(tag) tag.textContent = 'failed to load, check connection';
+    });
+  }
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
 
@@ -870,7 +920,7 @@ function updateGlobeTexture(){
   globeTexture.needsUpdate = true;
 }
 
-(function initGlobe(){
+function initGlobe(){
   const wrap = document.getElementById('globeWrap');
   if(!wrap || typeof THREE === "undefined") return;
   const size = wrap.clientWidth || 480;
@@ -1038,7 +1088,7 @@ function updateGlobeTexture(){
     if(globeAutoRotate && !globeDragging) globeGroup.rotation.y += 0.0025;
     globeRenderer.render(globeScene, globeCamera);
   })();
-})();
+}
 
 function renderGlobe(){
   if(!pinGroup) return;
@@ -1065,6 +1115,10 @@ function populateFormOptions(){
   const productList = document.getElementById('productList');
   const existingProducts = [...new Set(registrations.map(r => r.product))];
   productList.innerHTML = existingProducts.map(p => `<option value="${p}"></option>`).join('');
+  const commonAuthorities = ["FDA","EMA","MHRA","PMDA","Health Canada","TGA","CDSCO","ANVISA","COFEPRIS","NMPA","MFDS"];
+  const existingAuthorities = registrations.map(r => r.authority).filter(Boolean);
+  const authorityList = document.getElementById('authorityList');
+  authorityList.innerHTML = [...new Set([...commonAuthorities, ...existingAuthorities])].map(a => `<option value="${a}"></option>`).join('');
 }
 populateFormOptions();
 
@@ -1076,10 +1130,13 @@ document.getElementById('regForm').addEventListener('submit', function(e){
   const country = document.getElementById('inCountry').value;
   const status = document.getElementById('inStatus').value;
   const expiryDate = document.getElementById('inExpiry').value || null;
+  const regNumber = document.getElementById('inRegNumber').value.trim();
+  const authority = document.getElementById('inAuthority').value.trim();
   if(!product || !country) return;
-  registrations.push({product, country, status, expiryDate});
+  registrations.push({product, country, status, expiryDate, regNumber, authority});
   persist(); populateFormOptions(); renderAll();
   document.getElementById('inProduct').value=''; document.getElementById('inExpiry').value='';
+  document.getElementById('inRegNumber').value=''; document.getElementById('inAuthority').value='';
 });
 
 const STORAGE_KEY = "regatlas:registrations";
@@ -1103,9 +1160,9 @@ document.getElementById('btnReset').addEventListener('click', function(){
 });
 
 document.getElementById('btnExport').addEventListener('click', function(){
-  const rows = [["Product","Country","Region","Status","Expiry Date"]];
+  const rows = [["Product","Country","Region","Status","Expiry Date","Registration Number","Health Authority"]];
   registrations.forEach(r => { const region=(COUNTRY_META[r.country]||{}).region||"";
-    rows.push([r.product, r.country, region, statusLabel[r.status], r.expiryDate || ""]); });
+    rows.push([r.product, r.country, region, statusLabel[r.status], r.expiryDate || "", r.regNumber || "", r.authority || ""]); });
   const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], {type:"text/csv"});
   const url = URL.createObjectURL(blob);
