@@ -446,14 +446,31 @@
 const COUNTRY_META = {
   "USA":{region:"North America", iso:840, lat:39.8, lon:-98.6}, "Canada":{region:"North America", iso:124, lat:56.1, lon:-106.3},
   "Mexico":{region:"Latin America", iso:484, lat:23.6, lon:-102.5}, "Brazil":{region:"Latin America", iso:76, lat:-14.2, lon:-51.9},
-  "Argentina":{region:"Latin America", iso:32, lat:-38.4, lon:-63.6},
+  "Argentina":{region:"Latin America", iso:32, lat:-38.4, lon:-63.6}, "Chile":{region:"Latin America", iso:152, lat:-35.7, lon:-71.5},
+  "Colombia":{region:"Latin America", iso:170, lat:4.6, lon:-74.3}, "Peru":{region:"Latin America", iso:604, lat:-9.2, lon:-75.0},
   "Germany":{region:"Europe", iso:276, lat:51.2, lon:10.4}, "France":{region:"Europe", iso:250, lat:46.2, lon:2.2},
   "UK":{region:"Europe", iso:826, lat:55.4, lon:-3.4}, "Spain":{region:"Europe", iso:724, lat:40.5, lon:-3.7},
   "Italy":{region:"Europe", iso:380, lat:41.9, lon:12.6}, "Netherlands":{region:"Europe", iso:528, lat:52.1, lon:5.3},
-  "Switzerland":{region:"Europe", iso:756, lat:46.8, lon:8.2},
+  "Switzerland":{region:"Europe", iso:756, lat:46.8, lon:8.2}, "Belgium":{region:"Europe", iso:56, lat:50.5, lon:4.5},
+  "Sweden":{region:"Europe", iso:752, lat:60.1, lon:18.6}, "Norway":{region:"Europe", iso:578, lat:60.5, lon:8.5},
+  "Denmark":{region:"Europe", iso:208, lat:56.3, lon:9.5}, "Finland":{region:"Europe", iso:246, lat:61.9, lon:25.7},
+  "Poland":{region:"Europe", iso:616, lat:51.9, lon:19.1}, "Austria":{region:"Europe", iso:40, lat:47.5, lon:14.6},
+  "Ireland":{region:"Europe", iso:372, lat:53.4, lon:-8.2}, "Portugal":{region:"Europe", iso:620, lat:39.4, lon:-8.2},
+  "Greece":{region:"Europe", iso:300, lat:39.1, lon:21.8}, "Czech Republic":{region:"Europe", iso:203, lat:49.8, lon:15.5},
+  "Romania":{region:"Europe", iso:642, lat:45.9, lon:24.9}, "Hungary":{region:"Europe", iso:348, lat:47.2, lon:19.5},
+  "Saudi Arabia":{region:"Middle East & Africa", iso:682, lat:23.9, lon:45.1}, "UAE":{region:"Middle East & Africa", iso:784, lat:23.4, lon:53.8},
+  "Israel":{region:"Middle East & Africa", iso:376, lat:31.0, lon:34.9}, "Turkey":{region:"Middle East & Africa", iso:792, lat:38.9, lon:35.2},
+  "Egypt":{region:"Middle East & Africa", iso:818, lat:26.8, lon:30.8}, "South Africa":{region:"Middle East & Africa", iso:710, lat:-30.6, lon:22.9},
+  "Nigeria":{region:"Middle East & Africa", iso:566, lat:9.1, lon:8.7}, "Kenya":{region:"Middle East & Africa", iso:404, lat:-0.02, lon:37.9},
+  "Morocco":{region:"Middle East & Africa", iso:504, lat:31.8, lon:-7.1},
   "Japan":{region:"Asia Pacific", iso:392, lat:36.2, lon:138.3}, "China":{region:"Asia Pacific", iso:156, lat:35.9, lon:104.2},
   "India":{region:"Asia Pacific", iso:356, lat:20.6, lon:79.0}, "Australia":{region:"Asia Pacific", iso:36, lat:-25.3, lon:133.8},
-  "South Korea":{region:"Asia Pacific", iso:410, lat:36.5, lon:127.8}, "Singapore":{region:"Asia Pacific", iso:702, lat:1.35, lon:103.8}
+  "South Korea":{region:"Asia Pacific", iso:410, lat:36.5, lon:127.8}, "Singapore":{region:"Asia Pacific", iso:702, lat:1.35, lon:103.8},
+  "Taiwan":{region:"Asia Pacific", iso:158, lat:23.7, lon:121.0}, "Thailand":{region:"Asia Pacific", iso:764, lat:15.9, lon:101.0},
+  "Vietnam":{region:"Asia Pacific", iso:704, lat:14.06, lon:108.3}, "Indonesia":{region:"Asia Pacific", iso:360, lat:-0.79, lon:113.9},
+  "Malaysia":{region:"Asia Pacific", iso:458, lat:4.2, lon:102.0}, "Philippines":{region:"Asia Pacific", iso:608, lat:12.9, lon:121.8},
+  "New Zealand":{region:"Asia Pacific", iso:554, lat:-40.9, lon:174.9}, "Pakistan":{region:"Asia Pacific", iso:586, lat:30.4, lon:69.3},
+  "Bangladesh":{region:"Asia Pacific", iso:50, lat:23.7, lon:90.4}
 };
 const nameByISO = Object.fromEntries(Object.entries(COUNTRY_META).map(([k,v]) => [v.iso,k]));
 
