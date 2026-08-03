@@ -130,6 +130,8 @@
   #mapWrap{position:relative;width:100%;background:var(--bg);border-radius:var(--r);padding:.5rem;}
   #mapWrap svg{width:100%;height:auto;display:block;}
   .country-shape{stroke:var(--bg);stroke-width:.6;cursor:pointer;transition:opacity .12s,fill .5s var(--ease);}
+  .tiny-marker{cursor:pointer;transition:opacity .12s,fill .5s var(--ease);}
+  .tiny-marker:hover{opacity:.8;}
   .country-shape:hover{opacity:.8;}
   #mapTooltip,#globeTooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--mono);
     font-size:.7rem;padding:6px 10px;border-radius:3px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;}
@@ -735,7 +737,7 @@ document.querySelectorAll('.panel-dots').forEach(dots => {
   });
 });
 
-let mapSvg = null;
+let mapSvg = null, mapProjection = null, mapTooltipSel = null, mapWrapEl = null;
 function renderMap(){
   const debugEl = document.getElementById('mapDebug');
   if(!mapSvg){
@@ -748,8 +750,41 @@ function renderMap(){
   mapSvg.selectAll("path.country-shape").attr("fill", d => {
     const st = statusByISO[+d.id]; return st ? fillByStatus[st] : "#E3E5E9";
   });
+
+  // Marker dots — one per currently-registered country, always drawn
+  // regardless of whether the underlying map shape data renders that
+  // country's polygon correctly at this resolution (Singapore etc.).
+  // Rebuilt on every render so added/removed countries update the set.
+  const uniqueCountries = [...new Set(registrations.map(r => r.country))];
+  const markerData = uniqueCountries.map(name => [name, COUNTRY_META[name]]).filter(d => d[1] && mapProjection);
+
+  mapSvg.select(".tiny-markers").selectAll("circle")
+    .data(markerData, d => d[0])
+    .join(
+      enter => enter.append("circle")
+        .attr("class","tiny-marker")
+        .attr("r", 5)
+        .attr("stroke","#fff").attr("stroke-width",1.2)
+        .style("opacity", 0)
+        .on("mousemove", function(event, d){
+          const st = worstStatusForCountry(d[0]);
+          const label = st ? `${d[0]} — ${statusLabel[st]}` : `${d[0]} — no data`;
+          const rect = mapWrapEl.getBoundingClientRect();
+          mapTooltipSel.style("opacity",1).text(label)
+            .style("left",(event.clientX-rect.left+12)+"px").style("top",(event.clientY-rect.top-8)+"px");
+        })
+        .on("mouseleave", () => mapTooltipSel.style("opacity",0))
+        .call(e => e.transition().duration(300).style("opacity",1)),
+      update => update,
+      exit => exit.transition().duration(200).style("opacity",0).remove()
+    )
+    .attr("cx", d => mapProjection([d[1].lon, d[1].lat])[0])
+    .attr("cy", d => mapProjection([d[1].lon, d[1].lat])[1])
+    .attr("fill", d => { const st = worstStatusForCountry(d[0]); return st ? fillByStatus[st] : "#E3E5E9"; });
+
   if(debugEl){
-    debugEl.textContent = `Debug: ${pathCount} country paths on map · ${Object.keys(statusByISO).length} matched to a registration · ${registrations.length} total registrations.`;
+    const markerCount = mapSvg.selectAll(".tiny-marker").size();
+    debugEl.textContent = `Debug: ${pathCount} country paths + ${markerCount} country markers on map · ${Object.keys(statusByISO).length} matched to a registration · ${registrations.length} total registrations.`;
   }
 }
 
@@ -775,6 +810,15 @@ function renderMap(){
           tooltip.style("opacity",1).text(label).style("left",(event.clientX-rect.left+12)+"px").style("top",(event.clientY-rect.top-8)+"px");
         }).on("mouseleave", () => tooltip.style("opacity",0));
       mapSvg.selectAll("path").transition().duration(600).style("opacity",1);
+
+      // empty group now — renderMap() below owns creating/updating/removing
+      // markers for whichever countries are currently registered, so it
+      // stays correct as data changes, not just at initial load
+      mapSvg.append("g").attr("class","tiny-markers");
+      mapProjection = projection;
+      mapTooltipSel = tooltip;
+      mapWrapEl = wrap;
+
       renderMap();
       document.getElementById('mapPanelTag').innerHTML = '<span class="live-dot"></span>rendered';
     })
