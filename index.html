@@ -51,6 +51,13 @@
   .kpi .n{font-family:var(--mono);font-size:1.05rem;font-weight:700;color:var(--ink);}
   .kpi .l{font-family:var(--sans);font-size:.6rem;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
 
+  .util-bar{display:flex;align-items:center;gap:.9rem;padding:.45rem 1.6rem;background:var(--surface);
+    border-bottom:1px solid var(--border);flex-shrink:0;font-size:.74rem;}
+  .util-badge{display:flex;align-items:center;gap:6px;color:var(--muted);font-weight:500;white-space:nowrap;}
+  .util-spacer{flex:1;}
+  .util-credit{color:var(--soft);font-family:var(--serif);font-weight:600;white-space:nowrap;}
+  .util-link{padding:4px 10px;font-size:.72rem;white-space:nowrap;}
+
   .intro-strip{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.6rem;background:var(--accent-tint);
     border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
   .intro-top{display:flex;align-items:center;gap:1.4rem;}
@@ -233,6 +240,14 @@
     <button class="btn-ghost" id="btnHowTo" style="flex-shrink:0;">Guide</button>
   </div>
 
+  <div class="util-bar">
+    <span class="util-badge"><span class="live-dot"></span>No server storage — data stays in this session</span>
+    <span class="util-spacer"></span>
+    <span class="util-credit">Built by Yash Gandhi</span>
+    <a href="https://www.linkedin.com/in/yash-gandhi26/" target="_blank" rel="noopener" class="btn-ghost util-link">LinkedIn →</a>
+    <a href="mailto:ygandhi.corpdesk@outlook.com?subject=RegAtlas%20Feedback" class="btn-ghost util-link">Feedback →</a>
+  </div>
+
   <div class="intro-strip" id="introStrip">
     <div class="intro-top">
       <div class="intro-text">
@@ -400,6 +415,10 @@
 
       <p style="font-size:.79rem;color:var(--muted);line-height:1.6;margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid var(--border);">
         Curious how the Health Score is actually calculated, and what "Healthy / Watch / At Risk" means? Open the <strong>Health</strong> tab and expand the "How It's Measured" panel underneath the scores.
+      </p>
+
+      <p style="font-size:.73rem;color:var(--soft);line-height:1.6;margin-top:1.2rem;padding-top:1rem;border-top:1px solid var(--border);">
+        Nothing here is sent to any server — your entries persist only within this browser session, and Export CSV is the only way data leaves this tool. RegAtlas is an educational portfolio project and does not constitute regulatory or legal advice; always verify against primary regulatory sources.
       </p>
     </div>
   </div>
