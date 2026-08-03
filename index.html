@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RegAtlas — Regulatory Portfolio Register</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  :root{
+    --bg:#F5F7FA; --surface:#FFFFFF; --border:#E1E6EC; --border-strong:#C9D2DC;
+    --ink:#16202B; --muted:#4A5A6B; --soft:#7C8CA0;
+    --accent:#2C5F6F; --accent-tint:#EAF2F3;
+    --green:#1E7A4C; --green-tint:#EAF7EF;
+    --amber:#B4720A; --amber-tint:#FDF3E2;
+    --red:#B23A2E; --red-tint:#FBEAE7;
+    --gray:#64748B; --gray-tint:#EEF1F4;
+    --serif:'Playfair Display',serif; --sans:'Inter',sans-serif; --mono:'IBM Plex Mono',monospace;
+    --r:8px; --r-lg:12px;
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --chrome-bg:#EDEEF1;
+  }
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:.89rem;line-height:1.55;height:100vh;overflow:hidden;}
+
+  .app{display:flex;flex-direction:column;height:100vh;}
+
+  .topbar{
+    display:flex;align-items:center;gap:1.6rem;padding:.8rem 1.6rem;background:var(--surface);
+    border-bottom:1px solid var(--border);flex-shrink:0;box-shadow:0 1px 2px rgba(22,32,43,.04);
+  }
+  .brand{display:flex;align-items:center;gap:.55rem;flex-shrink:0;}
+  .brand .sq{width:28px;height:28px;border-radius:7px;background:linear-gradient(150deg,#3A7686,var(--accent) 60%,#1D4550);
+    box-shadow:0 2px 6px rgba(44,95,111,.3),inset 0 1px 0 rgba(255,255,255,.25);
+    display:flex;align-items:center;justify-content:center;animation:markSpinIn .7s var(--ease) .05s backwards;}
+  @keyframes markSpinIn{0%{opacity:0;transform:rotate(-90deg) scale(.4);}100%{opacity:1;transform:rotate(0) scale(1);}}
+  .brand .name{font-family:var(--serif);font-weight:700;font-size:1.05rem;letter-spacing:-.01em;}
+
+  .tabs{display:flex;gap:2px;background:var(--bg);border-radius:9px;padding:3px;flex-shrink:0;}
+  .tab{font-family:var(--sans);font-size:.78rem;font-weight:600;color:var(--muted);background:transparent;border:none;
+    padding:.5rem .9rem;border-radius:6px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap;}
+  .tab:hover{color:var(--ink);}
+  .tab.active{background:var(--surface);color:var(--accent);box-shadow:0 1px 3px rgba(22,32,43,.08);}
+
+  .kpi-strip{display:flex;gap:1px;margin-left:auto;background:var(--border);border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+  .kpi{padding:.45rem .9rem;background:var(--surface);cursor:pointer;transition:background .15s;text-align:center;min-width:76px;}
+  .kpi:hover{background:var(--accent-tint);}
+  .kpi .n{font-family:var(--mono);font-size:1.05rem;font-weight:700;color:var(--ink);}
+  .kpi .l{font-family:var(--sans);font-size:.6rem;color:var(--soft);text-transform:uppercase;letter-spacing:.05em;font-weight:600;}
+
+  .intro-strip{display:flex;flex-direction:column;gap:.55rem;padding:.7rem 1.6rem;background:var(--accent-tint);
+    border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+  .intro-top{display:flex;align-items:center;gap:1.4rem;}
+  .intro-text{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+  .intro-text strong{font-family:var(--serif);font-weight:600;font-size:.92rem;color:var(--ink);}
+  .intro-text strong em{font-style:italic;font-weight:500;color:var(--muted);}
+  .intro-sub{font-size:.74rem;color:var(--muted);}
+  .intro-disclaimer{font-size:.76rem;color:var(--amber);background:var(--amber-tint);border:1px solid #EBCE94;
+    border-left:3px solid var(--amber);padding:.5rem .8rem;border-radius:5px;line-height:1.5;font-weight:500;}
+  #introDismiss{flex-shrink:0;width:22px;height:22px;border-radius:5px;border:1px solid var(--border-strong);
+    background:var(--surface);color:var(--soft);cursor:pointer;font-size:.85rem;line-height:1;}
+  #introDismiss:hover{background:var(--red-tint);color:var(--red);border-color:var(--red);}
+  .intro-strip.hidden{display:none;}
+
+  .body-row{display:flex;flex:1;min-height:0;}
+  .workspace{flex:1;min-width:0;overflow-y:auto;padding:1.4rem 1.6rem;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;animation:panelIn .35s var(--ease);}
+  @keyframes panelIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    box-shadow:0 2px 2px rgba(22,32,43,.05),0 8px 16px rgba(22,32,43,.08);overflow:hidden;margin-bottom:1.1rem;}
+  .panel-chrome{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:.6rem;
+    padding:.55rem 1rem;background:linear-gradient(var(--chrome-bg),#E6E8EC);border-bottom:1px solid var(--border);cursor:pointer;}
+  .panel-dots{display:flex;gap:6px;}
+  .panel-dots span{width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.12);}
+  .panel-dots span:nth-child(1){background:#FF5F57;}
+  .panel-dots span:nth-child(2){background:#FEBC2E;}
+  .panel-dots span:nth-child(3){background:#28C840;}
+  .panel-file{font-family:var(--mono);font-size:.7rem;color:var(--muted);font-weight:500;text-align:center;}
+  .panel-tag{justify-self:end;font-family:var(--mono);font-size:.64rem;color:var(--soft);display:flex;align-items:center;gap:5px;}
+  .panel.collapsed .panel-body{display:none;}
+  .panel-body{padding:1.2rem;}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.2s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .form-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:.9rem;}
+  .field{display:flex;flex-direction:column;gap:4px;}
+  .field label{font-family:var(--mono);font-size:.63rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);}
+  .field input,.field select{font-family:var(--sans);font-size:.81rem;padding:8px 10px;border:1px solid var(--border-strong);
+    border-radius:var(--r);background:var(--bg);color:var(--ink);outline:none;}
+  .field input:focus,.field select:focus{border-color:var(--accent);}
+  .btn-add{font-family:var(--sans);font-size:.78rem;font-weight:600;padding:9px 16px;border-radius:var(--r);border:1px solid var(--accent);
+    background:linear-gradient(160deg,#3A7686,var(--accent) 55%);color:#fff;cursor:pointer;box-shadow:0 2px 6px rgba(44,95,111,.25);
+    transition:transform .15s,box-shadow .15s;white-space:nowrap;}
+  .btn-add:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(44,95,111,.32);}
+  .btn-ghost{font-family:var(--sans);font-size:.73rem;font-weight:500;padding:6px 12px;border-radius:var(--r);
+    border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);}
+  .form-toolbar{display:flex;gap:10px;margin-top:.7rem;padding-top:.7rem;border-top:1px solid var(--border);}
+
+  #filterInput{width:100%;font-family:var(--sans);font-size:.82rem;padding:8px 10px;border:1px solid var(--border-strong);
+    border-radius:var(--r);background:var(--bg);color:var(--ink);outline:none;}
+
+  table.register{width:100%;border-collapse:collapse;font-size:.81rem;}
+  table.register th{font-family:var(--mono);font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);
+    text-align:left;padding:.5rem .6rem;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+  table.register th:hover{color:var(--accent);}
+  table.register th .arrow{opacity:.5;font-size:.6rem;margin-left:3px;}
+  table.register td{padding:.55rem .6rem;border-bottom:1px solid #F0F1F3;}
+  table.register tr:hover td{background:var(--bg);}
+  .status-chip{font-family:var(--mono);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    padding:3px 8px 3px 7px;border-radius:2px;white-space:nowrap;border-left:3px solid;}
+  .st-approved{background:var(--green-tint);color:var(--green);border-color:var(--green);}
+  .st-pending{background:var(--amber-tint);color:var(--amber);border-color:var(--amber);}
+  .st-expiring{background:var(--red-tint);color:var(--red);border-color:var(--red);}
+  .st-notfiled{background:var(--gray-tint);color:var(--gray);border-color:var(--gray);}
+  .row-del{width:20px;height:20px;border-radius:4px;border:1px solid var(--border-strong);background:var(--surface);
+    color:var(--soft);font-size:.85rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+  .row-del:hover{background:var(--red-tint);color:var(--red);border-color:var(--red);}
+
+  .geo-row{display:grid;grid-template-columns:1fr;gap:14px;align-items:start;}
+  .geo-row.with-globe{grid-template-columns:1fr 260px;}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-top:1rem;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
+  #mapWrap{position:relative;width:100%;background:var(--bg);border-radius:var(--r);padding:.5rem;}
+  #mapWrap svg{width:100%;height:auto;display:block;}
+  .country-shape{stroke:var(--bg);stroke-width:.6;cursor:pointer;transition:opacity .12s,fill .5s var(--ease);}
+  .country-shape:hover{opacity:.8;}
+  #mapTooltip,#globeTooltip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;font-family:var(--mono);
+    font-size:.7rem;padding:6px 10px;border-radius:3px;opacity:0;transition:opacity .1s;white-space:nowrap;z-index:5;}
+  .map-loading{font-size:.8rem;color:var(--soft);padding:2rem;text-align:center;}
+
+  .gauge-item{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.1rem;padding:.8rem .3rem;
+    border-bottom:1px solid #F0F1F3;border-radius:3px;}
+  .gauge-item:last-child{border-bottom:none;}
+  .gauge-item:hover{background:var(--bg);}
+  .gauge-item .pname{font-size:.83rem;font-weight:600;min-width:150px;}
+  .gauge-item .bar-track{position:relative;height:8px;background:var(--gray-tint);border-radius:2px;overflow:hidden;}
+  .gauge-item .bar-fill{position:absolute;top:0;left:0;height:100%;width:0%;border-radius:2px;transition:width 1s var(--ease);}
+  .gauge-item .score-block{display:flex;align-items:baseline;gap:.5rem;min-width:90px;justify-content:flex-end;}
+  .gauge-item .score-num{font-family:var(--serif);font-weight:700;font-size:1.25rem;}
+  .gauge-item .score-lvl{font-family:var(--mono);font-size:.6rem;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;}
+
+  .heatmap{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;}
+  .month-col{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .month-label{font-family:var(--mono);font-size:.6rem;color:var(--soft);text-transform:uppercase;}
+  .heat-cell{width:100%;aspect-ratio:1;border-radius:3px;min-width:22px;border:1px solid rgba(22,32,43,.05);}
+
+  .tl-row{display:grid;grid-template-columns:180px 1fr auto;gap:1rem;align-items:center;padding:.55rem .3rem;
+    border-bottom:1px solid #F0F1F3;border-radius:3px;}
+  .tl-row:hover{background:var(--bg);}
+  .tl-label{font-size:.79rem;font-weight:600;}
+  .tl-sub{font-family:var(--mono);font-size:.65rem;color:var(--soft);}
+  .tl-track{position:relative;height:14px;background:var(--gray-tint);border-radius:3px;overflow:hidden;}
+  .tl-fill{position:absolute;top:0;left:0;height:100%;border-radius:3px;width:0%;transition:width 1s var(--ease);}
+  .tl-pct{font-family:var(--mono);font-size:.71rem;font-weight:600;color:var(--muted);min-width:36px;text-align:right;}
+
+  .action-rail{width:280px;flex-shrink:0;border-left:1px solid var(--border);background:var(--surface);
+    padding:1.2rem 1.1rem;overflow-y:auto;}
+  .rail-head{font-family:var(--serif);font-weight:700;font-size:.95rem;margin-bottom:.2rem;}
+  .rail-sub{font-family:var(--mono);font-size:.65rem;color:var(--soft);margin-bottom:1rem;text-transform:uppercase;letter-spacing:.05em;}
+  .rail-group{margin-bottom:1.3rem;}
+  .rail-group h4{font-family:var(--mono);font-size:.63rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    margin-bottom:.55rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
+  .rail-item{display:flex;flex-direction:column;gap:2px;padding:.55rem .6rem;border-radius:6px;cursor:pointer;
+    border-left:3px solid;margin-bottom:5px;transition:background .12s;}
+  .rail-item:hover{background:var(--bg);}
+  .rail-item .r-title{font-size:.78rem;font-weight:600;}
+  .rail-item .r-sub{font-family:var(--mono);font-size:.66rem;color:var(--soft);}
+  .rail-empty{font-size:.78rem;color:var(--soft);padding:.6rem 0;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(22,32,43,.45);display:none;align-items:center;justify-content:center;z-index:50;padding:2rem;}
+  .modal-overlay.open{display:flex;}
+  .modal-panel{max-width:560px;width:100%;max-height:85vh;overflow-y:auto;margin-bottom:0;
+    box-shadow:0 20px 60px rgba(22,32,43,.3);animation:modalIn .25s var(--ease);}
+  @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.98);}to{opacity:1;transform:none;}}
+  .modal-x{background:none;border:none;color:var(--soft);font-size:1rem;cursor:pointer;line-height:1;padding:0;}
+  .modal-x:hover{color:var(--red);}
+  .howto-title{font-family:var(--serif);font-size:1.05rem;font-weight:600;color:var(--ink);margin-bottom:1.3rem;line-height:1.4;}
+  .howto-steps{display:flex;flex-direction:column;gap:1.1rem;}
+  .howto-step{display:grid;grid-template-columns:auto 1fr;gap:.9rem;align-items:start;}
+  .howto-num{width:26px;height:26px;border-radius:50%;background:var(--accent-tint);color:var(--accent);
+    font-family:var(--mono);font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .howto-step strong{font-size:.86rem;font-weight:600;color:var(--ink);display:block;margin-bottom:.2rem;}
+  .howto-step p{font-size:.79rem;color:var(--muted);line-height:1.55;}
+
+  .howto-formula{list-style:none;display:flex;flex-direction:column;gap:.4rem;margin-bottom:.6rem;}
+  .howto-formula li{font-size:.8rem;color:var(--ink);display:flex;gap:.6rem;align-items:baseline;}
+  .howto-formula li span{font-family:var(--mono);font-weight:700;color:var(--red);min-width:34px;}
+  .howto-formula li b{font-weight:600;}
+
+  .band-row{border-left:3px solid;padding:.5rem .8rem;margin-bottom:.6rem;background:var(--bg);border-radius:0 6px 6px 0;}
+  .band-label{font-family:var(--mono);font-size:.76rem;font-weight:700;margin-bottom:.15rem;}
+  .band-row p{font-size:.78rem;color:var(--muted);line-height:1.5;}
+
+  @media (max-width:980px){
+    .action-rail{display:none;}
+    .geo-row{grid-template-columns:1fr;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001s !important;transition-duration:.001s !important;}}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="sq">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L14.3 9.7L22 12L14.3 14.3L12 22L9.7 14.3L2 12L9.7 9.7Z" fill="#fff"/>
+          <circle cx="12" cy="12" r="1.6" fill="var(--accent)"/>
+        </svg>
+      </span>
+      <span class="name">RegAtlas</span>
+    </div>
+    <nav class="tabs" id="tabNav">
+      <button class="tab active" data-tab="register">Register</button>
+      <button class="tab" data-tab="map">Map</button>
+      <button class="tab" data-tab="health">Health</button>
+      <button class="tab" data-tab="workload">Workload</button>
+      <button class="tab" data-tab="timeline">Timeline</button>
+    </nav>
+    <div class="kpi-strip" id="kpiRow"></div>
+    <button class="btn-ghost" id="btnHowTo" style="flex-shrink:0;">Guide</button>
+  </div>
+
+  <div class="intro-strip" id="introStrip">
+    <div class="intro-top">
+      <div class="intro-text">
+        <strong>A registration is a promise <em>someone still has to defend.</em></strong>
+        <span class="intro-sub">The analytics layer of an enterprise RIM system, sized for the gap between a spreadsheet tracker and a seven-figure platform.</span>
+      </div>
+      <button id="introDismiss" title="Hide this">×</button>
+    </div>
+    <div class="intro-disclaimer">⚠ Health score weights are illustrative, not a regulator-issued metric. Not connected to any live regulatory data source — no such public source exists for company-level registration status.</div>
+  </div>
+
+  <div class="body-row">
+    <div class="workspace">
+
+      <div class="tab-panel active" id="panel-register">
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Intake</span><span class="panel-tag"><span class="live-dot"></span>editable</span></div>
+          <div class="panel-body">
+            <form id="regForm" class="form-row">
+              <div class="field"><label for="inProduct">Product</label>
+                <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
+                <datalist id="productList"></datalist></div>
+              <div class="field"><label for="inCountry">Country</label><select id="inCountry" required></select></div>
+              <div class="field"><label for="inStatus">Status</label>
+                <select id="inStatus" required>
+                  <option value="approved">Approved</option><option value="pending">Pending</option>
+                  <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
+                </select></div>
+              <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" /></div>
+              <button type="submit" class="btn-add">+ Add Entry</button>
+            </form>
+            <div class="form-toolbar">
+              <button type="button" class="btn-ghost" id="btnExport">↓ Export CSV</button>
+              <button type="button" class="btn-ghost" id="btnReset">↺ Reset to sample data</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Filter</span><span class="panel-tag" id="filterCount">11 of 11</span></div>
+          <div class="panel-body"><input id="filterInput" type="text" placeholder="filter by product, country, or status…" /></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Register</span><span class="panel-tag" id="gridPanelTag">entries</span></div>
+          <div class="panel-body" style="padding:0;overflow-x:auto;">
+            <table class="register" id="registerTable"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-map">
+        <div style="margin-bottom:10px;">
+          <button type="button" class="btn-ghost" id="btnToggleGlobe">+ Show 3D Globe</button>
+        </div>
+        <div class="geo-row" id="geoRow">
+          <div class="panel">
+            <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+              <span class="panel-file">Map</span><span class="panel-tag" id="mapPanelTag"><span class="live-dot"></span>rendering</span></div>
+            <div class="panel-body">
+              <div id="mapWrap"><div class="map-loading" id="mapLoading">Loading world map…</div><div id="mapTooltip"></div></div>
+              <div class="legend">
+                <span><i class="dot" style="background:#1E7A4C"></i>Approved</span>
+                <span><i class="dot" style="background:#B4720A"></i>Pending</span>
+                <span><i class="dot" style="background:#B23A2E"></i>Expiring &lt;90d</span>
+                <span><i class="dot" style="background:#64748B"></i>Not filed</span>
+                <span><i class="dot" style="background:#E3E5E9"></i>No data</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel" id="globePanel" style="display:none;">
+            <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+              <span class="panel-file">Globe</span><span class="panel-tag" id="globePanelTag">drag to spin</span></div>
+            <div class="panel-body" style="padding:.8rem;display:flex;justify-content:center;">
+              <div id="globeWrap" style="position:relative;width:100%;max-width:230px;aspect-ratio:1;
+                border-radius:50%;box-shadow:0 10px 28px rgba(22,32,43,.14),inset 0 0 0 1px rgba(22,32,43,.05);">
+                <div id="globeTooltip"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-health">
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Health Score</span><span class="panel-tag">formula-driven, worst-first</span></div>
+          <div class="panel-body"><div id="gaugeRow"></div></div>
+        </div>
+
+        <div class="panel collapsed">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">How It's Measured</span><span class="panel-tag">click to expand</span></div>
+          <div class="panel-body">
+            <p style="font-size:.79rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
+              A simple additive formula per product, starting at 100 — not an AI judgment, every point traces to a specific registration:
+            </p>
+            <ul class="howto-formula">
+              <li><span>−12</span> for each market marked <b>Not Filed</b></li>
+              <li><span>−5</span> for each market marked <b>Pending</b></li>
+              <li><span>−18</span> for each market marked <b>Expiring</b></li>
+              <li><span>−10</span> more if a registration's expiry is under 90 days away</li>
+              <li><span>−20</span> more if it's already past its expiry date</li>
+            </ul>
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Clamped between 0–100. Weights are illustrative, not a regulator-issued metric.</p>
+
+            <h3 class="howto-title" style="font-size:.92rem;margin-top:1rem;">What the bands mean</h3>
+            <div class="band-row" style="border-left-color:var(--green)">
+              <div class="band-label" style="color:var(--green)">Healthy · 70–100</div>
+              <p>Registrations largely approved, nothing expiring imminently. Routine monitoring is enough.</p>
+            </div>
+            <div class="band-row" style="border-left-color:var(--amber)">
+              <div class="band-label" style="color:var(--amber)">Watch · 50–69</div>
+              <p>Some pending or soon-to-expire markets. Worth a closer look before it becomes urgent.</p>
+            </div>
+            <div class="band-row" style="border-left-color:var(--red)">
+              <div class="band-label" style="color:var(--red)">At Risk · 0–49</div>
+              <p>Multiple not-filed, expiring, or past-due markets stacking up. This is what the Action Queue surfaces first.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-workload">
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Workload</span><span class="panel-tag" id="heatPanelTag">12 cells</span></div>
+          <div class="panel-body"><div class="heatmap" id="heatmap"></div></div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-timeline">
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Timeline</span><span class="panel-tag" id="tlPanelTag">tracked</span></div>
+          <div class="panel-body" id="timelinePanel"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <aside class="action-rail">
+      <div class="rail-head">Action Queue</div>
+      <div class="rail-sub">What needs attention, right now</div>
+      <div id="railContent"></div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal-overlay" id="howtoOverlay">
+  <div class="panel modal-panel">
+    <div class="panel-chrome"><div class="panel-dots" title="Close"><span></span><span></span><span></span></div>
+      <span class="panel-file">How to Use</span><span class="panel-tag"><button id="howtoClose" class="modal-x">×</button></span></div>
+    <div class="panel-body">
+      <h3 class="howto-title">From registration data to portfolio clarity — in minutes</h3>
+      <div class="howto-steps">
+        <div class="howto-step">
+          <div class="howto-num">1</div>
+          <div><strong>Add your registrations</strong><p>Enter product, country, status, and expiry in the Register tab. No jargon required — just what you actually know about the product and market.</p></div>
+        </div>
+        <div class="howto-step">
+          <div class="howto-num">2</div>
+          <div><strong>Explore by tab</strong><p>Switch between Register, Map, Health, Workload, and Timeline to see the same portfolio from different angles — geography, product risk, upcoming load, and lifecycle stage.</p></div>
+        </div>
+        <div class="howto-step">
+          <div class="howto-num">3</div>
+          <div><strong>Watch the Action Queue</strong><p>The panel on the right always shows what needs attention first — products flagged "At Risk" or "Watch," and registrations expiring soonest — no matter which tab you're on.</p></div>
+        </div>
+        <div class="howto-step">
+          <div class="howto-num">4</div>
+          <div><strong>Export or reset anytime</strong><p>Download your data as a CSV for your own records, or reset to the sample dataset to start over. Nothing here is sent anywhere.</p></div>
+        </div>
+      </div>
+
+      <p style="font-size:.79rem;color:var(--muted);line-height:1.6;margin-top:1.4rem;padding-top:1.2rem;border-top:1px solid var(--border);">
+        Curious how the Health Score is actually calculated, and what "Healthy / Watch / At Risk" means? Open the <strong>Health</strong> tab and expand the "How It's Measured" panel underneath the scores.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const COUNTRY_META = {
+  "USA":{region:"North America", iso:840, lat:39.8, lon:-98.6}, "Canada":{region:"North America", iso:124, lat:56.1, lon:-106.3},
+  "Mexico":{region:"Latin America", iso:484, lat:23.6, lon:-102.5}, "Brazil":{region:"Latin America", iso:76, lat:-14.2, lon:-51.9},
+  "Argentina":{region:"Latin America", iso:32, lat:-38.4, lon:-63.6},
+  "Germany":{region:"Europe", iso:276, lat:51.2, lon:10.4}, "France":{region:"Europe", iso:250, lat:46.2, lon:2.2},
+  "UK":{region:"Europe", iso:826, lat:55.4, lon:-3.4}, "Spain":{region:"Europe", iso:724, lat:40.5, lon:-3.7},
+  "Italy":{region:"Europe", iso:380, lat:41.9, lon:12.6}, "Netherlands":{region:"Europe", iso:528, lat:52.1, lon:5.3},
+  "Switzerland":{region:"Europe", iso:756, lat:46.8, lon:8.2},
+  "Japan":{region:"Asia Pacific", iso:392, lat:36.2, lon:138.3}, "China":{region:"Asia Pacific", iso:156, lat:35.9, lon:104.2},
+  "India":{region:"Asia Pacific", iso:356, lat:20.6, lon:79.0}, "Australia":{region:"Asia Pacific", iso:36, lat:-25.3, lon:133.8},
+  "South Korea":{region:"Asia Pacific", iso:410, lat:36.5, lon:127.8}, "Singapore":{region:"Asia Pacific", iso:702, lat:1.35, lon:103.8}
+};
+const nameByISO = Object.fromEntries(Object.entries(COUNTRY_META).map(([k,v]) => [v.iso,k]));
+
+let registrations = [
+  {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02"},
+  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18"},
+  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18"},
+  {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30"},
+  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null},
+  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null},
+  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15"},
+  {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null},
+  {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01"},
+  {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null},
+  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20"}
+];
+const SEED_DATA = JSON.stringify(registrations);
+const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const fillByStatus = {approved:"#1E7A4C", pending:"#B4720A", expiring:"#B23A2E", notfiled:"#64748B"};
+const statusClass = {approved:"st-approved", pending:"st-pending", expiring:"st-expiring", notfiled:"st-notfiled"};
+const statusLabel = {approved:"Approved", pending:"Pending", expiring:"Expiring", notfiled:"Not Filed"};
+const stageByStatus = {approved:{stage:"Approved", pct:100}, expiring:{stage:"Nearing Expiry", pct:88},
+  pending:{stage:"Under Review", pct:55}, notfiled:{stage:"Filed", pct:15}};
+const urgency = {expiring:4, notfiled:3, pending:2, approved:1};
+
+function computeHealthScores(list){
+  list = list || registrations;
+  const byProduct = {};
+  list.forEach(r => (byProduct[r.product] = byProduct[r.product] || []).push(r));
+  return Object.entries(byProduct).map(([name, rows]) => {
+    let score = 100;
+    rows.forEach(r => {
+      if(r.status === "notfiled") score -= 12;
+      if(r.status === "pending") score -= 5;
+      if(r.status === "expiring") score -= 18;
+      if(r.expiryDate){
+        const days = Math.round((new Date(r.expiryDate) - new Date()) / 86400000);
+        if(days < 90 && days >= 0) score -= 10;
+        if(days < 0) score -= 20;
+      }
+    });
+    score = Math.max(0, Math.min(100, Math.round(score)));
+    const level = score >= 70 ? "Healthy" : score >= 50 ? "Watch" : "At Risk";
+    return {name, score, level, count: rows.length};
+  }).sort((a,b) => a.score - b.score);
+}
+
+function computeWorkload(){
+  const counts = new Array(12).fill(0);
+  const now = new Date();
+  registrations.forEach(r => {
+    if(!r.expiryDate) return;
+    const d = new Date(r.expiryDate);
+    const monthsOut = (d.getFullYear()-now.getFullYear())*12 + (d.getMonth()-now.getMonth());
+    if(monthsOut >= 0 && monthsOut < 12) counts[monthsOut]++;
+  });
+  return counts;
+}
+
+function computeTimeline(){
+  return registrations.map(r => {
+    const s = stageByStatus[r.status];
+    return {name:`${r.product} — ${r.country}`, stage:s.stage, pct:s.pct, color:fillByStatus[r.status]};
+  });
+}
+
+let filterQuery = "";
+let sortCol = "urgency", sortDir = "desc";
+
+function getFilteredSorted(){
+  const q = filterQuery.trim().toLowerCase();
+  let list = registrations.filter(r => {
+    if(!q) return true;
+    const statusText = (statusLabel[r.status]||"").toLowerCase();
+    return r.product.toLowerCase().includes(q) || r.country.toLowerCase().includes(q) || statusText.includes(q);
+  });
+  list = [...list];
+  list.sort((a,b) => {
+    let av, bv;
+    if(sortCol === "urgency"){ av = urgency[a.status]||0; bv = urgency[b.status]||0; }
+    else if(sortCol === "product"){ av = a.product.toLowerCase(); bv = b.product.toLowerCase(); }
+    else if(sortCol === "country"){ av = a.country.toLowerCase(); bv = b.country.toLowerCase(); }
+    else if(sortCol === "expiry"){ av = a.expiryDate || "9999"; bv = b.expiryDate || "9999"; }
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  return list;
+}
+
+function renderKPIs(){
+  const total = registrations.length;
+  const productCount = new Set(registrations.map(r => r.product)).size;
+  const expiring = registrations.filter(r => r.status === "expiring").length;
+  const openEvents = computeWorkload().reduce((a,b)=>a+b,0);
+  const kpis = [
+    {n:productCount, l:"Products", action:"clear"},
+    {n:total, l:"Registrations", action:"clear"},
+    {n:expiring, l:"Expiring", action:"filter-expiring"},
+    {n:openEvents, l:"Dated Events", action:"goto-workload"}
+  ];
+  document.getElementById('kpiRow').innerHTML = kpis.map(k =>
+    `<div class="kpi" data-action="${k.action}"><div class="n" data-target="${k.n}">0</div><div class="l">${k.l}</div></div>`
+  ).join('');
+  document.querySelectorAll('.kpi .n').forEach(el => {
+    const target = +el.dataset.target; let start = null;
+    function step(ts){ if(!start) start=ts; const p=Math.min((ts-start)/600,1);
+      el.textContent = Math.round(target*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+  });
+  document.querySelectorAll('.kpi').forEach(card => {
+    card.addEventListener('click', () => {
+      const action = card.dataset.action;
+      if(action === "filter-expiring"){ filterQuery="expiring"; document.getElementById('filterInput').value="expiring"; switchTab('register'); renderRegisterTable(); }
+      else if(action === "clear"){ filterQuery=""; document.getElementById('filterInput').value=""; switchTab('register'); renderRegisterTable(); }
+      else if(action === "goto-workload"){ switchTab('workload'); }
+    });
+  });
+}
+
+function renderRegisterTable(){
+  const rows = getFilteredSorted();
+  document.getElementById('gridPanelTag').textContent = `${registrations.length} entries`;
+  document.getElementById('filterCount').textContent = `${rows.length} of ${registrations.length}`;
+
+  const arrow = col => sortCol === col ? (sortDir === "asc" ? "▲" : "▼") : "";
+  let html = `<thead><tr>
+    <th data-sort="product">Product <span class="arrow">${arrow("product")}</span></th>
+    <th data-sort="country">Country / Region <span class="arrow">${arrow("country")}</span></th>
+    <th data-sort="urgency">Status <span class="arrow">${arrow("urgency")}</span></th>
+    <th data-sort="expiry">Expiry <span class="arrow">${arrow("expiry")}</span></th>
+    <th></th>
+  </tr></thead><tbody>`;
+
+  if(rows.length === 0){
+    html += `<tr><td colspan="5" style="color:var(--soft);padding:1.2rem .6rem;">No matching registrations.</td></tr>`;
+  } else {
+    rows.forEach(r => {
+      const idx = registrations.indexOf(r);
+      const region = (COUNTRY_META[r.country]||{}).region || "";
+      html += `<tr>
+        <td>${r.product}</td>
+        <td>${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span></td>
+        <td><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
+        <td style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "—"}</td>
+        <td><button class="row-del" data-idx="${idx}" title="Remove">×</button></td>
+      </tr>`;
+    });
+  }
+  html += `</tbody>`;
+  document.getElementById('registerTable').innerHTML = html;
+
+  document.querySelectorAll('#registerTable th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = th.dataset.sort;
+      if(sortCol === col) sortDir = sortDir === "asc" ? "desc" : "asc";
+      else { sortCol = col; sortDir = "desc"; }
+      renderRegisterTable();
+    });
+  });
+  document.querySelectorAll('.row-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      registrations.splice(+btn.dataset.idx, 1);
+      persist(); populateFormOptions(); renderAll();
+    });
+  });
+}
+
+function renderGauges(){
+  const healthScores = computeHealthScores();
+  if(healthScores.length === 0){
+    document.getElementById('gaugeRow').innerHTML = `<div style="padding:1rem;color:var(--soft);font-size:.82rem">No products yet.</div>`;
+    return;
+  }
+  document.getElementById('gaugeRow').innerHTML = healthScores.map(p => {
+    const color = p.score>=70?"#1E7A4C":p.score>=50?"#B4720A":"#B23A2E";
+    return `<div class="gauge-item">
+      <div class="pname">${p.name} <span style="color:var(--soft);font-weight:400;font-size:.72rem">(${p.count} mkt${p.count!==1?'s':''})</span></div>
+      <div class="bar-track"><div class="bar-fill" data-pct="${p.score}" style="background:${color}"></div></div>
+      <div class="score-block"><span class="score-num" style="color:${color}" data-target="${p.score}">0</span><span class="score-lvl">${p.level}</span></div>
+    </div>`;
+  }).join('');
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.gauge-item .bar-fill').forEach(el => { el.style.width = el.dataset.pct+'%'; });
+    document.querySelectorAll('.gauge-item .score-num').forEach(el => {
+      const target=+el.dataset.target; let start=null;
+      function step(ts){ if(!start) start=ts; const p=Math.min((ts-start)/900,1);
+        el.textContent=Math.round(target*(1-Math.pow(1-p,3))); if(p<1) requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+    });
+  });
+}
+
+function renderHeatmap(){
+  const workload = computeWorkload();
+  const maxLoad = Math.max(1, ...workload);
+  function heatColor(v){
+    if(v===0) return "#EDEEF0";
+    const intensity = v/maxLoad; const base=[44,95,111], bg=[237,238,240];
+    const mix = base.map((c,i)=>Math.round(bg[i]+(c-bg[i])*intensity));
+    return `rgb(${mix[0]},${mix[1]},${mix[2]})`;
+  }
+  const now = new Date();
+  document.getElementById('heatmap').innerHTML = workload.map((v,i) => {
+    const d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    return `<div class="month-col"><div class="month-label">${monthNames[d.getMonth()]}</div>
+      <div class="heat-cell" style="background:${heatColor(v)}" title="${monthNames[d.getMonth()]} ${d.getFullYear()}: ${v} expiry event${v!==1?'s':''}"></div></div>`;
+  }).join('');
+  document.getElementById('heatPanelTag').textContent = workload.reduce((a,b)=>a+b,0)===0 ? 'no dated entries' : `${workload.reduce((a,b)=>a+b,0)} dated events`;
+}
+
+function renderTimeline(){
+  const timeline = computeTimeline();
+  document.getElementById('tlPanelTag').textContent = `${timeline.length} tracked`;
+  if(timeline.length === 0){
+    document.getElementById('timelinePanel').innerHTML = `<div style="padding:.5rem 0;color:var(--soft);font-size:.82rem">No registrations yet.</div>`;
+    return;
+  }
+  document.getElementById('timelinePanel').innerHTML = timeline.map(t => `
+    <div class="tl-row"><div><div class="tl-label">${t.name}</div><div class="tl-sub">${t.stage}</div></div>
+      <div class="tl-track"><div class="tl-fill" data-pct="${t.pct}" style="background:${t.color}"></div></div>
+      <div class="tl-pct" data-pct-label="${t.pct}">0%</div></div>`).join('');
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.tl-fill').forEach(el => { el.style.width = el.dataset.pct+'%'; });
+    document.querySelectorAll('.tl-pct').forEach(el => {
+      const target=+el.dataset.pctLabel; let start=null;
+      function step(ts){ if(!start) start=ts; const p=Math.min((ts-start)/1000,1);
+        el.textContent=Math.round(target*(1-Math.pow(1-p,3)))+'%'; if(p<1) requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+    });
+  });
+}
+
+function renderActionRail(){
+  const atRisk = computeHealthScores().filter(p => p.level !== "Healthy").slice(0, 5);
+  const soon = registrations.filter(r => r.expiryDate)
+    .map(r => ({...r, days: Math.round((new Date(r.expiryDate)-new Date())/86400000)}))
+    .filter(r => r.days < 120)
+    .sort((a,b) => a.days - b.days).slice(0, 5);
+
+  let html = `<div class="rail-group"><h4>Products Needing Attention</h4>`;
+  html += atRisk.length === 0
+    ? `<div class="rail-empty">Nothing flagged — all products healthy.</div>`
+    : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
+        <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
+  html += `</div><div class="rail-group"><h4>Expiring Soonest</h4>`;
+  html += soon.length === 0
+    ? `<div class="rail-empty">Nothing expiring in the next 120 days.</div>`
+    : soon.map(r => `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:${r.days<0?'#B23A2E':r.days<90?'#B4720A':'#64748B'}">
+        <div class="r-title">${r.product}</div><div class="r-sub">${r.country} · ${r.days<0?'past due':r.days+'d left'}</div></div>`).join('');
+  html += `</div>`;
+  document.getElementById('railContent').innerHTML = html;
+
+  document.querySelectorAll('.rail-item[data-jump="health"]').forEach(el => el.addEventListener('click', () => switchTab('health')));
+  document.querySelectorAll('.rail-item[data-jump="register"]').forEach(el => el.addEventListener('click', () => {
+    filterQuery = el.dataset.filter; document.getElementById('filterInput').value = filterQuery;
+    switchTab('register'); renderRegisterTable();
+  }));
+}
+
+function renderAll(){
+  renderKPIs();
+  renderRegisterTable();
+  renderMap();
+  renderGauges();
+  renderHeatmap();
+  renderTimeline();
+  renderGlobe();
+  renderActionRail();
+}
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+
+document.getElementById('introDismiss').addEventListener('click', () => {
+  document.getElementById('introStrip').classList.add('hidden');
+});
+
+document.getElementById('btnToggleGlobe').addEventListener('click', function(){
+  const globePanel = document.getElementById('globePanel');
+  const geoRow = document.getElementById('geoRow');
+  const showing = globePanel.style.display !== 'none';
+  globePanel.style.display = showing ? 'none' : '';
+  geoRow.classList.toggle('with-globe', !showing);
+  this.textContent = showing ? '+ Show 3D Globe' : '− Hide 3D Globe';
+});
+
+document.getElementById('btnHowTo').addEventListener('click', () => {
+  document.getElementById('howtoOverlay').classList.add('open');
+});
+function closeHowTo(){ document.getElementById('howtoOverlay').classList.remove('open'); }
+document.getElementById('howtoClose').addEventListener('click', closeHowTo);
+document.getElementById('howtoOverlay').addEventListener('click', (e) => {
+  if(e.target.id === 'howtoOverlay') closeHowTo();
+});
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape') closeHowTo(); });
+
+document.querySelectorAll('.panel-dots').forEach(dots => {
+  dots.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if(dots.closest('.modal-panel')){ closeHowTo(); return; }
+    dots.closest('.panel').classList.toggle('collapsed');
+  });
+});
+
+let mapSvg = null;
+function renderMap(){
+  if(!mapSvg) return;
+  const statusByISO = {};
+  registrations.forEach(r => { const m = COUNTRY_META[r.country]; if(m) statusByISO[m.iso] = r.status; });
+  mapSvg.selectAll("path.country-shape").attr("fill", d => {
+    const st = statusByISO[+d.id]; return st ? fillByStatus[st] : "#E3E5E9";
+  });
+}
+
+(function drawMap(){
+  const wrap = document.getElementById('mapWrap');
+  const width = wrap.clientWidth || 800, height = width * 0.5;
+  fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+    .then(r => r.json())
+    .then(world => {
+      document.getElementById('mapLoading').remove();
+      const countries = topojson.feature(world, world.objects.countries).features;
+      const projection = d3.geoNaturalEarth1().fitSize([width, height], {type:"Sphere"});
+      const path = d3.geoPath(projection);
+      mapSvg = d3.select("#mapWrap").insert("svg", "#mapTooltip").attr("viewBox", `0 0 ${width} ${height}`);
+      const tooltip = d3.select("#mapTooltip");
+      mapSvg.selectAll("path").data(countries).join("path").attr("class","country-shape").attr("d", path)
+        .attr("fill","#E3E5E9").style("opacity",0)
+        .on("mousemove", function(event, d){
+          const statusByISO = {}; registrations.forEach(r => { const m=COUNTRY_META[r.country]; if(m) statusByISO[m.iso]=r.status; });
+          const st = statusByISO[+d.id]; const name = nameByISO[+d.id] || d.properties.name;
+          const label = st ? `${name} — ${statusLabel[st]}` : `${d.properties.name} — no data`;
+          const rect = wrap.getBoundingClientRect();
+          tooltip.style("opacity",1).text(label).style("left",(event.clientX-rect.left+12)+"px").style("top",(event.clientY-rect.top-8)+"px");
+        }).on("mouseleave", () => tooltip.style("opacity",0));
+      mapSvg.selectAll("path").transition().duration(600).style("opacity",1);
+      renderMap();
+      document.getElementById('mapPanelTag').innerHTML = '<span class="live-dot"></span>rendered';
+    })
+    .catch(() => {
+      document.getElementById('mapLoading').textContent = "Map data couldn't load (offline?).";
+      document.getElementById('mapPanelTag').textContent = 'offline';
+    });
+})();
+
+const statusPriority = {expiring:4, notfiled:3, pending:2, approved:1};
+function worstStatusForCountry(country){
+  let worst=null, worstP=-1;
+  registrations.forEach(r => { if(r.country!==country) return; const p=statusPriority[r.status]||0; if(p>worstP){worstP=p; worst=r.status;} });
+  return worst;
+}
+function latLonToVec3(lat, lon, radius){
+  const phi=(90-lat)*(Math.PI/180), theta=(lon+180)*(Math.PI/180);
+  return new THREE.Vector3(-radius*Math.sin(phi)*Math.cos(theta), radius*Math.cos(phi), radius*Math.sin(phi)*Math.sin(theta));
+}
+let globeScene, globeCamera, globeRenderer, globeGroup, pinGroup, globeRaycaster;
+let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null;
+
+(function initGlobe(){
+  const wrap = document.getElementById('globeWrap');
+  if(!wrap || typeof THREE === "undefined") return;
+  const size = wrap.clientWidth || 230;
+
+  globeScene = new THREE.Scene();
+  globeCamera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  globeCamera.position.z = 4.2;
+
+  globeRenderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  globeRenderer.setSize(size, size);
+  globeRenderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  wrap.insertBefore(globeRenderer.domElement, document.getElementById('globeTooltip'));
+
+  globeGroup = new THREE.Group();
+  globeScene.add(globeGroup);
+
+  globeScene.add(new THREE.AmbientLight(0xffffff, 0.75));
+  const globeLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  globeLight.position.set(2,2,3); globeScene.add(globeLight);
+
+  const sphereGeo = new THREE.SphereGeometry(1.5, 48, 48);
+  const sphereMat = new THREE.MeshStandardMaterial({color:0xE3E8EC, roughness:0.9, metalness:0});
+  const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+  globeGroup.add(sphereMesh);
+
+  fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+    .then(r => r.json())
+    .then(world => {
+      const tw=2048, th=1024;
+      const canvas = document.createElement('canvas'); canvas.width=tw; canvas.height=th;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = "#E3E8EC"; ctx.fillRect(0,0,tw,th);
+      const projection = d3.geoEquirectangular().fitSize([tw,th], {type:"Sphere"});
+      const geoPath = d3.geoPath(projection, ctx);
+      const countries = topojson.feature(world, world.objects.countries).features;
+      ctx.fillStyle="#B7C2CC"; ctx.strokeStyle="#8E9AA6"; ctx.lineWidth=1.8;
+      countries.forEach(f => { ctx.beginPath(); geoPath(f); ctx.fill(); ctx.stroke(); });
+      const texture = new THREE.CanvasTexture(canvas); texture.needsUpdate = true;
+      sphereMesh.material.map = texture; sphereMesh.material.color.set(0xffffff); sphereMesh.material.needsUpdate = true;
+    }).catch(() => {});
+
+  const graticuleMat = new THREE.LineBasicMaterial({color:0x2C5F6F, transparent:true, opacity:.35});
+  const ringPoints=64, R=1.508;
+  for(let latDeg=-60; latDeg<=60; latDeg+=30){
+    const pts=[]; const phi=(90-latDeg)*(Math.PI/180); const y=R*Math.cos(phi), ringR=R*Math.sin(phi);
+    for(let i=0;i<=ringPoints;i++){ const t=(i/ringPoints)*Math.PI*2; pts.push(new THREE.Vector3(ringR*Math.cos(t), y, ringR*Math.sin(t))); }
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), graticuleMat));
+  }
+  for(let lonDeg=0; lonDeg<180; lonDeg+=30){
+    const pts=[];
+    for(let i=0;i<=ringPoints;i++){ const t=(i/ringPoints)*Math.PI*2;
+      pts.push(new THREE.Vector3(R*Math.sin(t)*Math.cos(lonDeg*Math.PI/180), R*Math.cos(t), R*Math.sin(t)*Math.sin(lonDeg*Math.PI/180))); }
+    globeGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), graticuleMat));
+  }
+
+  pinGroup = new THREE.Group(); globeGroup.add(pinGroup);
+  globeRaycaster = new THREE.Raycaster();
+  renderGlobe();
+
+  const dom = globeRenderer.domElement;
+  dom.style.cursor = "grab"; dom.style.touchAction = "none";
+  function pointerDown(e){ globeDragging=true; globeAutoRotate=false; clearTimeout(globeResumeTimer);
+    globeLastX=e.clientX; globeLastY=e.clientY; dom.style.cursor="grabbing"; }
+  function pointerMove(e){
+    if(!globeDragging){ handleGlobeHover(e); return; }
+    const dx=e.clientX-globeLastX, dy=e.clientY-globeLastY; globeLastX=e.clientX; globeLastY=e.clientY;
+    globeGroup.rotation.y += dx*0.006;
+    globeGroup.rotation.x = Math.max(-1.1, Math.min(1.1, globeGroup.rotation.x + dy*0.006));
+  }
+  function pointerUp(){ if(!globeDragging) return; globeDragging=false; dom.style.cursor="grab";
+    globeResumeTimer = setTimeout(()=>{globeAutoRotate=true;}, 2000); }
+  function handleGlobeHover(e){
+    const rect = wrap.getBoundingClientRect();
+    const mouse = new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
+    globeRaycaster.setFromCamera(mouse, globeCamera);
+    const hits = globeRaycaster.intersectObjects(pinGroup.children);
+    const tooltip = document.getElementById('globeTooltip');
+    if(hits.length>0){ const d=hits[0].object.userData; tooltip.style.opacity=1; tooltip.textContent=`${d.country} — ${statusLabel[d.status]}`;
+      tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px"; }
+    else tooltip.style.opacity = 0;
+  }
+  dom.addEventListener('pointerdown', pointerDown);
+  window.addEventListener('pointermove', pointerMove);
+  window.addEventListener('pointerup', pointerUp);
+  dom.addEventListener('mouseleave', () => { document.getElementById('globeTooltip').style.opacity = 0; });
+
+  (function animateGlobe(){
+    requestAnimationFrame(animateGlobe);
+    if(globeAutoRotate && !globeDragging) globeGroup.rotation.y += 0.0025;
+    globeRenderer.render(globeScene, globeCamera);
+  })();
+})();
+
+function renderGlobe(){
+  if(!pinGroup) return;
+  while(pinGroup.children.length) pinGroup.remove(pinGroup.children[0]);
+  const uniqueCountries = [...new Set(registrations.map(r => r.country))];
+  uniqueCountries.forEach(country => {
+    const meta = COUNTRY_META[country]; if(!meta || meta.lat===undefined) return;
+    const status = worstStatusForCountry(country);
+    const pos = latLonToVec3(meta.lat, meta.lon, 1.53);
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(0.035,10,10), new THREE.MeshBasicMaterial({color:new THREE.Color(fillByStatus[status]||"#64748B")}));
+    pin.position.copy(pos); pin.userData = {country, status};
+    pinGroup.add(pin);
+  });
+}
+
+function populateFormOptions(){
+  const countrySel = document.getElementById('inCountry');
+  countrySel.innerHTML = Object.keys(COUNTRY_META).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+  const productList = document.getElementById('productList');
+  const existingProducts = [...new Set(registrations.map(r => r.product))];
+  productList.innerHTML = existingProducts.map(p => `<option value="${p}"></option>`).join('');
+}
+populateFormOptions();
+
+document.getElementById('filterInput').addEventListener('input', e => { filterQuery = e.target.value; renderRegisterTable(); });
+
+document.getElementById('regForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const product = document.getElementById('inProduct').value.trim();
+  const country = document.getElementById('inCountry').value;
+  const status = document.getElementById('inStatus').value;
+  const expiryDate = document.getElementById('inExpiry').value || null;
+  if(!product || !country) return;
+  registrations.push({product, country, status, expiryDate});
+  persist(); populateFormOptions(); renderAll();
+  document.getElementById('inProduct').value=''; document.getElementById('inExpiry').value='';
+});
+
+const STORAGE_KEY = "regatlas:registrations";
+async function persist(){
+  try{ if(window.storage) await window.storage.set(STORAGE_KEY, JSON.stringify(registrations)); }catch(e){}
+}
+async function loadPersisted(){
+  try{
+    if(window.storage){
+      const result = await window.storage.get(STORAGE_KEY);
+      if(result && result.value){ registrations = JSON.parse(result.value); populateFormOptions(); renderAll(); }
+    }
+  }catch(e){}
+}
+loadPersisted();
+
+document.getElementById('btnReset').addEventListener('click', function(){
+  if(!confirm("Reset to the original sample dataset? This clears anything you've added.")) return;
+  registrations = JSON.parse(SEED_DATA);
+  persist(); populateFormOptions(); renderAll();
+});
+
+document.getElementById('btnExport').addEventListener('click', function(){
+  const rows = [["Product","Country","Region","Status","Expiry Date"]];
+  registrations.forEach(r => { const region=(COUNTRY_META[r.country]||{}).region||"";
+    rows.push([r.product, r.country, region, statusLabel[r.status], r.expiryDate || ""]); });
+  const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download="regatlas-registrations.csv"; a.click();
+  URL.revokeObjectURL(url);
+});
+
+renderKPIs();
+renderRegisterTable();
+renderGauges();
+renderHeatmap();
+renderTimeline();
+renderActionRail();
+</script>
+
+</body>
+</html>
