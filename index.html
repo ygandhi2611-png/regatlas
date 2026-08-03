@@ -301,6 +301,7 @@
                 <span><i class="dot" style="background:#64748B"></i>Not filed</span>
                 <span><i class="dot" style="background:#E3E5E9"></i>No data</span>
               </div>
+              <div id="mapDebug" style="font-family:var(--mono);font-size:.68rem;color:var(--soft);margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--border);"></div>
             </div>
           </div>
           <div class="panel" id="globePanel" style="display:none;">
@@ -736,12 +737,20 @@ document.querySelectorAll('.panel-dots').forEach(dots => {
 
 let mapSvg = null;
 function renderMap(){
-  if(!mapSvg) return;
+  const debugEl = document.getElementById('mapDebug');
+  if(!mapSvg){
+    if(debugEl) debugEl.textContent = `Debug: map SVG not ready yet (mapSvg is null). Registrations: ${registrations.length}.`;
+    return;
+  }
   const statusByISO = {};
   registrations.forEach(r => { const m = COUNTRY_META[r.country]; if(m) statusByISO[m.iso] = r.status; });
+  const pathCount = mapSvg.selectAll("path.country-shape").size();
   mapSvg.selectAll("path.country-shape").attr("fill", d => {
     const st = statusByISO[+d.id]; return st ? fillByStatus[st] : "#E3E5E9";
   });
+  if(debugEl){
+    debugEl.textContent = `Debug: ${pathCount} country paths on map · ${Object.keys(statusByISO).length} matched to a registration · ${registrations.length} total registrations.`;
+  }
 }
 
 (function drawMap(){
