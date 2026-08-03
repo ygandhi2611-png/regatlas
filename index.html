@@ -287,33 +287,20 @@
       </div>
 
       <div class="tab-panel" id="panel-map">
-        <div style="margin-bottom:10px;">
-          <button type="button" class="btn-ghost" id="btnToggleGlobe">+ Show 3D Globe</button>
-        </div>
-        <div class="geo-row" id="geoRow">
-          <div class="panel">
-            <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
-              <span class="panel-file">Map</span><span class="panel-tag" id="mapPanelTag"><span class="live-dot"></span>rendering</span></div>
-            <div class="panel-body">
-              <div id="mapWrap"><div class="map-loading" id="mapLoading">Loading world map…</div><div id="mapTooltip"></div></div>
-              <div class="legend">
-                <span><i class="dot" style="background:#1E7A4C"></i>Approved</span>
-                <span><i class="dot" style="background:#B4720A"></i>Pending</span>
-                <span><i class="dot" style="background:#B23A2E"></i>Expiring &lt;90d</span>
-                <span><i class="dot" style="background:#64748B"></i>Not filed</span>
-                <span><i class="dot" style="background:#E3E5E9"></i>No data</span>
-              </div>
-              <div id="mapDebug" style="font-family:var(--mono);font-size:.68rem;color:var(--soft);margin-top:.6rem;padding-top:.6rem;border-top:1px dashed var(--border);"></div>
+        <div class="panel">
+          <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
+            <span class="panel-file">Globe</span><span class="panel-tag" id="globePanelTag">drag to spin</span></div>
+          <div class="panel-body" style="display:flex;flex-direction:column;align-items:center;">
+            <div id="globeWrap" style="position:relative;width:100%;max-width:480px;aspect-ratio:1;
+              border-radius:50%;box-shadow:0 16px 40px rgba(22,32,43,.18),inset 0 0 0 1px rgba(22,32,43,.05);">
+              <div id="globeTooltip"></div>
             </div>
-          </div>
-          <div class="panel" id="globePanel" style="display:none;">
-            <div class="panel-chrome"><div class="panel-dots" title="Click to collapse/expand"><span></span><span></span><span></span></div>
-              <span class="panel-file">Globe</span><span class="panel-tag" id="globePanelTag">drag to spin</span></div>
-            <div class="panel-body" style="padding:.8rem;display:flex;justify-content:center;">
-              <div id="globeWrap" style="position:relative;width:100%;max-width:230px;aspect-ratio:1;
-                border-radius:50%;box-shadow:0 10px 28px rgba(22,32,43,.14),inset 0 0 0 1px rgba(22,32,43,.05);">
-                <div id="globeTooltip"></div>
-              </div>
+            <div class="legend" style="margin-top:1.4rem;">
+              <span><i class="dot" style="background:#1E7A4C"></i>Approved</span>
+              <span><i class="dot" style="background:#B4720A"></i>Pending</span>
+              <span><i class="dot" style="background:#B23A2E"></i>Expiring &lt;90d</span>
+              <span><i class="dot" style="background:#64748B"></i>Not filed</span>
+              <span><i class="dot" style="background:#E3E5E9"></i>No data</span>
             </div>
           </div>
         </div>
@@ -692,7 +679,6 @@ function renderActionRail(){
 function renderAll(){
   renderKPIs();
   renderRegisterTable();
-  renderMap();
   renderGauges();
   renderHeatmap();
   renderTimeline();
@@ -708,15 +694,6 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
 
 document.getElementById('introDismiss').addEventListener('click', () => {
   document.getElementById('introStrip').classList.add('hidden');
-});
-
-document.getElementById('btnToggleGlobe').addEventListener('click', function(){
-  const globePanel = document.getElementById('globePanel');
-  const geoRow = document.getElementById('geoRow');
-  const showing = globePanel.style.display !== 'none';
-  globePanel.style.display = showing ? 'none' : '';
-  geoRow.classList.toggle('with-globe', !showing);
-  this.textContent = showing ? '+ Show 3D Globe' : '− Hide 3D Globe';
 });
 
 document.getElementById('btnHowTo').addEventListener('click', () => {
@@ -737,100 +714,6 @@ document.querySelectorAll('.panel-dots').forEach(dots => {
   });
 });
 
-let mapSvg = null, mapProjection = null, mapTooltipSel = null, mapWrapEl = null, mapAreaByISO = {};
-function renderMap(){
-  const debugEl = document.getElementById('mapDebug');
-  if(!mapSvg){
-    if(debugEl) debugEl.textContent = `Debug: map SVG not ready yet (mapSvg is null). Registrations: ${registrations.length}.`;
-    return;
-  }
-  const statusByISO = {};
-  registrations.forEach(r => { const m = COUNTRY_META[r.country]; if(m) statusByISO[m.iso] = r.status; });
-  const pathCount = mapSvg.selectAll("path.country-shape").size();
-  mapSvg.selectAll("path.country-shape").attr("fill", d => {
-    const st = statusByISO[+d.id]; return st ? fillByStatus[st] : "#E3E5E9";
-  });
-
-  // Marker dots — one per currently-registered country, always drawn
-  // regardless of whether the underlying map shape data renders that
-  // country's polygon correctly at this resolution (Singapore etc.).
-  // Rebuilt on every render so added/removed countries update the set.
-  const uniqueCountries = [...new Set(registrations.map(r => r.country))];
-  const AREA_THRESHOLD = 6; // px² — below this, treat as "no real shape to color"
-  const markerData = uniqueCountries.map(name => [name, COUNTRY_META[name]])
-    .filter(d => d[1] && mapProjection && (mapAreaByISO[d[1].iso] || 0) < AREA_THRESHOLD);
-
-  mapSvg.select(".tiny-markers").selectAll("circle")
-    .data(markerData, d => d[0])
-    .join(
-      enter => enter.append("circle")
-        .attr("class","tiny-marker")
-        .attr("r", 5)
-        .attr("stroke","#fff").attr("stroke-width",1.2)
-        .style("opacity", 0)
-        .on("mousemove", function(event, d){
-          const st = worstStatusForCountry(d[0]);
-          const label = st ? `${d[0]} — ${statusLabel[st]}` : `${d[0]} — no data`;
-          const rect = mapWrapEl.getBoundingClientRect();
-          mapTooltipSel.style("opacity",1).text(label)
-            .style("left",(event.clientX-rect.left+12)+"px").style("top",(event.clientY-rect.top-8)+"px");
-        })
-        .on("mouseleave", () => mapTooltipSel.style("opacity",0))
-        .call(e => e.transition().duration(300).style("opacity",1)),
-      update => update,
-      exit => exit.transition().duration(200).style("opacity",0).remove()
-    )
-    .attr("cx", d => mapProjection([d[1].lon, d[1].lat])[0])
-    .attr("cy", d => mapProjection([d[1].lon, d[1].lat])[1])
-    .attr("fill", d => { const st = worstStatusForCountry(d[0]); return st ? fillByStatus[st] : "#E3E5E9"; });
-
-  if(debugEl){
-    const markerCount = mapSvg.selectAll(".tiny-marker").size();
-    debugEl.textContent = `Debug: ${pathCount} country paths + ${markerCount} country markers on map · ${Object.keys(statusByISO).length} matched to a registration · ${registrations.length} total registrations.`;
-  }
-}
-
-(function drawMap(){
-  const wrap = document.getElementById('mapWrap');
-  const width = wrap.clientWidth || 800, height = width * 0.5;
-  fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
-    .then(r => r.json())
-    .then(world => {
-      document.getElementById('mapLoading').remove();
-      const countries = topojson.feature(world, world.objects.countries).features;
-      const projection = d3.geoNaturalEarth1().fitSize([width, height], {type:"Sphere"});
-      const path = d3.geoPath(projection);
-      mapSvg = d3.select("#mapWrap").insert("svg", "#mapTooltip").attr("viewBox", `0 0 ${width} ${height}`);
-      const tooltip = d3.select("#mapTooltip");
-      mapSvg.selectAll("path").data(countries).join("path").attr("class","country-shape").attr("d", path)
-        .attr("fill","#E3E5E9").style("opacity",0)
-        .on("mousemove", function(event, d){
-          const statusByISO = {}; registrations.forEach(r => { const m=COUNTRY_META[r.country]; if(m) statusByISO[m.iso]=r.status; });
-          const st = statusByISO[+d.id]; const name = nameByISO[+d.id] || d.properties.name;
-          const label = st ? `${name} — ${statusLabel[st]}` : `${d.properties.name} — no data`;
-          const rect = wrap.getBoundingClientRect();
-          tooltip.style("opacity",1).text(label).style("left",(event.clientX-rect.left+12)+"px").style("top",(event.clientY-rect.top-8)+"px");
-        }).on("mouseleave", () => tooltip.style("opacity",0));
-      mapSvg.selectAll("path").transition().duration(600).style("opacity",1);
-
-      // empty group now — renderMap() below owns creating/updating/removing
-      // markers for whichever countries are currently registered, so it
-      // stays correct as data changes, not just at initial load
-      mapSvg.append("g").attr("class","tiny-markers");
-      mapProjection = projection;
-      countries.forEach(f => { mapAreaByISO[+f.id] = path.area(f); });
-      mapTooltipSel = tooltip;
-      mapWrapEl = wrap;
-
-      renderMap();
-      document.getElementById('mapPanelTag').innerHTML = '<span class="live-dot"></span>rendered';
-    })
-    .catch(() => {
-      document.getElementById('mapLoading').textContent = "Map data couldn't load (offline?).";
-      document.getElementById('mapPanelTag').textContent = 'offline';
-    });
-})();
-
 const statusPriority = {expiring:4, notfiled:3, pending:2, approved:1};
 function worstStatusForCountry(country){
   let worst=null, worstP=-1;
@@ -843,6 +726,24 @@ function latLonToVec3(lat, lon, radius){
 }
 let globeScene, globeCamera, globeRenderer, globeGroup, pinGroup, globeRaycaster;
 let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null;
+let globeGeoPath=null, globeCanvas=null, globeCtx=null, globeTexture=null, globeCountries=null, globeAreaByISO={};
+const GLOBE_TW=2048, GLOBE_TH=1024, GLOBE_AREA_THRESHOLD=140; // px² in texture space — below this, use a pin instead
+
+function updateGlobeTexture(){
+  if(!globeCtx || !globeCountries) return;
+  const ctx = globeCtx;
+  ctx.clearRect(0,0,GLOBE_TW,GLOBE_TH);
+  ctx.fillStyle = "#EEF1F3"; ctx.fillRect(0,0,GLOBE_TW,GLOBE_TH); // ocean
+  ctx.strokeStyle = "#8E9AA6"; ctx.lineWidth = 1.6;
+  globeCountries.forEach(f => {
+    const name = nameByISO[+f.id];
+    const st = name ? worstStatusForCountry(name) : null;
+    const bigEnough = (globeAreaByISO[+f.id] || 0) >= GLOBE_AREA_THRESHOLD;
+    ctx.fillStyle = (st && bigEnough) ? fillByStatus[st] : "#C7D0D8";
+    ctx.beginPath(); globeGeoPath(f); ctx.fill(); ctx.stroke();
+  });
+  globeTexture.needsUpdate = true;
+}
 
 (function initGlobe(){
   const wrap = document.getElementById('globeWrap');
@@ -861,32 +762,42 @@ let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globe
   globeGroup = new THREE.Group();
   globeScene.add(globeGroup);
 
-  globeScene.add(new THREE.AmbientLight(0xffffff, 0.75));
-  const globeLight = new THREE.DirectionalLight(0xffffff, 0.7);
-  globeLight.position.set(2,2,3); globeScene.add(globeLight);
-
-  const sphereGeo = new THREE.SphereGeometry(1.5, 48, 48);
-  const sphereMat = new THREE.MeshStandardMaterial({color:0xE3E8EC, roughness:0.9, metalness:0});
+  // Flat, unlit material — no ambient/directional lighting on the sphere
+  // itself, which is what was causing the soft/hazy look. Colors render
+  // exactly as drawn on the texture, crisp rather than diffused.
+  const sphereGeo = new THREE.SphereGeometry(1.5, 64, 64);
+  const sphereMat = new THREE.MeshBasicMaterial({color:0xEEF1F3});
   const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
   globeGroup.add(sphereMesh);
+
+  globeCanvas = document.createElement('canvas');
+  globeCanvas.width = GLOBE_TW; globeCanvas.height = GLOBE_TH;
+  globeCtx = globeCanvas.getContext('2d');
 
   fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
     .then(r => r.json())
     .then(world => {
-      const tw=2048, th=1024;
-      const canvas = document.createElement('canvas'); canvas.width=tw; canvas.height=th;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = "#E3E8EC"; ctx.fillRect(0,0,tw,th);
-      const projection = d3.geoEquirectangular().fitSize([tw,th], {type:"Sphere"});
-      const geoPath = d3.geoPath(projection, ctx);
-      const countries = topojson.feature(world, world.objects.countries).features;
-      ctx.fillStyle="#B7C2CC"; ctx.strokeStyle="#8E9AA6"; ctx.lineWidth=1.8;
-      countries.forEach(f => { ctx.beginPath(); geoPath(f); ctx.fill(); ctx.stroke(); });
-      const texture = new THREE.CanvasTexture(canvas); texture.needsUpdate = true;
-      sphereMesh.material.map = texture; sphereMesh.material.color.set(0xffffff); sphereMesh.material.needsUpdate = true;
+      const projection = d3.geoEquirectangular().fitSize([GLOBE_TW, GLOBE_TH], {type:"Sphere"});
+      globeGeoPath = d3.geoPath(projection, globeCtx);
+      globeCountries = topojson.feature(world, world.objects.countries).features;
+      globeCountries.forEach(f => { globeAreaByISO[+f.id] = globeGeoPath.area(f); });
+
+      globeTexture = new THREE.CanvasTexture(globeCanvas);
+      // crisp, not mipmap-blurred — this is what makes a canvas texture
+      // look sharp instead of soft/hazy at this size
+      globeTexture.minFilter = THREE.LinearFilter;
+      globeTexture.magFilter = THREE.LinearFilter;
+      globeTexture.generateMipmaps = false;
+      sphereMesh.material.map = globeTexture;
+      sphereMesh.material.color.set(0xffffff);
+      sphereMesh.material.needsUpdate = true;
+
+      updateGlobeTexture();
+      renderGlobe();
     }).catch(() => {});
 
-  const graticuleMat = new THREE.LineBasicMaterial({color:0x2C5F6F, transparent:true, opacity:.35});
+  // lat/long graticule — thin, subtle, purely a reference grid
+  const graticuleMat = new THREE.LineBasicMaterial({color:0xffffff, transparent:true, opacity:.28});
   const ringPoints=64, R=1.508;
   for(let latDeg=-60; latDeg<=60; latDeg+=30){
     const pts=[]; const phi=(90-latDeg)*(Math.PI/180); const y=R*Math.cos(phi), ringR=R*Math.sin(phi);
@@ -940,10 +851,15 @@ let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globe
 
 function renderGlobe(){
   if(!pinGroup) return;
+  updateGlobeTexture();
   while(pinGroup.children.length) pinGroup.remove(pinGroup.children[0]);
   const uniqueCountries = [...new Set(registrations.map(r => r.country))];
   uniqueCountries.forEach(country => {
     const meta = COUNTRY_META[country]; if(!meta || meta.lat===undefined) return;
+    // only pin countries too small to be colored on the texture itself —
+    // mirrors the same area-based logic used on the flat map
+    const bigEnough = (globeAreaByISO[meta.iso] || 0) >= GLOBE_AREA_THRESHOLD;
+    if(bigEnough) return;
     const status = worstStatusForCountry(country);
     const pos = latLonToVec3(meta.lat, meta.lon, 1.53);
     const pin = new THREE.Mesh(new THREE.SphereGeometry(0.035,10,10), new THREE.MeshBasicMaterial({color:new THREE.Color(fillByStatus[status]||"#64748B")}));
