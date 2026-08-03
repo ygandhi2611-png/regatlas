@@ -727,7 +727,7 @@ function latLonToVec3(lat, lon, radius){
 }
 let globeScene, globeCamera, globeRenderer, globeGroup, pinGroup, globeRaycaster;
 let globeDragging=false, globeLastX=0, globeLastY=0, globeAutoRotate=true, globeResumeTimer=null;
-let globeGeoPath=null, globeCanvas=null, globeCtx=null, globeTexture=null, globeCountries=null, globeAreaByISO={};
+let globeGeoPath=null, globeCanvas=null, globeCtx=null, globeTexture=null, globeCountries=null, globeAreaByISO={}, globeSphereMesh=null;
 const GLOBE_TW=2048, GLOBE_TH=1024, GLOBE_AREA_THRESHOLD=140; // px² in texture space — below this, use a pin instead
 
 function updateGlobeTexture(){
@@ -769,6 +769,7 @@ function updateGlobeTexture(){
   const sphereGeo = new THREE.SphereGeometry(1.5, 64, 64);
   const sphereMat = new THREE.MeshBasicMaterial({color:0xEEF1F3});
   const sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+  globeSphereMesh = sphereMesh;
   globeGroup.add(sphereMesh);
 
   globeCanvas = document.createElement('canvas');
@@ -832,11 +833,39 @@ function updateGlobeTexture(){
     const rect = wrap.getBoundingClientRect();
     const mouse = new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1, -((e.clientY-rect.top)/rect.height)*2+1);
     globeRaycaster.setFromCamera(mouse, globeCamera);
-    const hits = globeRaycaster.intersectObjects(pinGroup.children);
     const tooltip = document.getElementById('globeTooltip');
-    if(hits.length>0){ const d=hits[0].object.userData; tooltip.style.opacity=1; tooltip.textContent=`${d.country} — ${statusLabel[d.status]}`;
-      tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px"; }
-    else tooltip.style.opacity = 0;
+
+    // pins (tiny countries) take priority since they're the most specific target
+    const pinHits = globeRaycaster.intersectObjects(pinGroup.children);
+    if(pinHits.length > 0){
+      const d = pinHits[0].object.userData;
+      tooltip.style.opacity=1; tooltip.textContent=`${d.country} — ${statusLabel[d.status]}`;
+      tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px";
+      return;
+    }
+
+    // otherwise, identify whatever real country is under the cursor on
+    // the sphere's surface itself, using the same boundary data used to
+    // draw it — this is what makes any point on the globe identifiable,
+    // not just the pinned tiny ones
+    if(!globeSphereMesh || !globeCountries){ tooltip.style.opacity = 0; return; }
+    const sphereHits = globeRaycaster.intersectObject(globeSphereMesh);
+    if(sphereHits.length === 0){ tooltip.style.opacity = 0; return; }
+
+    const local = globeGroup.worldToLocal(sphereHits[0].point.clone());
+    const r = local.length();
+    const lat = 90 - Math.acos(local.y / r) * (180/Math.PI);
+    const lon = Math.atan2(local.z, -local.x) * (180/Math.PI) - 180;
+
+    const feature = globeCountries.find(f => d3.geoContains(f, [lon, lat]));
+    if(!feature){ tooltip.style.opacity = 0; return; }
+
+    const trackedName = nameByISO[+feature.id];
+    const displayName = trackedName || feature.properties.name;
+    const st = trackedName ? worstStatusForCountry(trackedName) : null;
+    const label = st ? `${displayName} — ${statusLabel[st]}` : `${displayName} — no data`;
+    tooltip.style.opacity = 1; tooltip.textContent = label;
+    tooltip.style.left=(e.clientX-rect.left+12)+"px"; tooltip.style.top=(e.clientY-rect.top-8)+"px";
   }
   dom.addEventListener('pointerdown', pointerDown);
   window.addEventListener('pointermove', pointerMove);
