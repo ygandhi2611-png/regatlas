@@ -109,7 +109,7 @@
   .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.2s ease-in-out infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
-  .form-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:.9rem;}
+  .form-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:10px;align-items:end;margin-bottom:.9rem;}
   .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.9rem;}
   .field{display:flex;flex-direction:column;gap:4px;}
   .field label{font-family:var(--mono);font-size:.63rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);}
@@ -118,7 +118,7 @@
   .field input:focus,.field select:focus{border-color:var(--accent);}
   .btn-add{font-family:var(--sans);font-size:.78rem;font-weight:600;padding:9px 16px;border-radius:var(--r);border:1px solid var(--accent);
     background:linear-gradient(160deg,#3A7686,var(--accent) 55%);color:#fff;cursor:pointer;box-shadow:0 2px 6px rgba(44,95,111,.25);
-    transition:transform .15s,box-shadow .15s;white-space:nowrap;}
+    transition:transform .15s,box-shadow .15s;white-space:nowrap;margin-top:.3rem;}
   .btn-add:hover{transform:translateY(-1px);box-shadow:0 6px 14px rgba(44,95,111,.32);}
   .btn-ghost{font-family:var(--sans);font-size:.73rem;font-weight:500;padding:6px 12px;border-radius:var(--r);
     border:1px solid var(--border-strong);background:var(--surface);color:var(--muted);cursor:pointer;}
@@ -331,7 +331,6 @@
                     <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
                   </select></div>
                 <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" /></div>
-                <button type="submit" class="btn-add">+ Add Entry</button>
               </div>
               <div class="form-row-2">
                 <div class="field"><label for="inRegNumber">Registration / license number (optional)</label>
@@ -340,6 +339,7 @@
                   <input id="inAuthority" list="authorityList" placeholder="e.g. FDA, EMA, MHRA, PMDA" />
                   <datalist id="authorityList"></datalist></div>
               </div>
+              <button type="submit" class="btn-add">+ Add Entry</button>
             </form>
             <div class="form-toolbar">
               <button type="button" class="btn-ghost" id="btnExport">↓ Export CSV</button>
