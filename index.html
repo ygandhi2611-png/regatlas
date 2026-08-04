@@ -461,6 +461,12 @@
           <div class="panel-body">
             <p style="font-size:.74rem;color:var(--soft);margin-bottom:.9rem;">Counts upcoming expiry dates by month. Does not include submission prep, renewals in progress, or other regulatory activity types.</p>
             <div class="heatmap" id="heatmap"></div>
+            <div class="legend" style="margin-top:1rem;">
+              <span><i class="dot" style="background:#EDEEF0;border-radius:2px;"></i>No expirations</span>
+              <span><i class="dot" style="background:#8FADB8;border-radius:2px;"></i>Some, relative to your busiest month</span>
+              <span><i class="dot" style="background:#2C5F6F;border-radius:2px;"></i>Your peak month</span>
+            </div>
+            <p style="font-size:.7rem;color:var(--soft);margin-top:.5rem;">Shading is a relative intensity scale, not a fixed threshold. The darkest cell is always whichever month currently has the most expirations, it recalculates as your data changes.</p>
           </div>
         </div>
       </div>
