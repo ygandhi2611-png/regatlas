@@ -846,6 +846,7 @@ function switchTab(name){
     if(tag) tag.textContent = 'loading map libraries…';
     loadMapLibraries().then(() => {
       initGlobe();
+      if(tag) tag.textContent = 'drag to spin';
     }).catch(() => {
       if(tag) tag.textContent = 'failed to load, check connection';
     });
