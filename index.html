@@ -1233,6 +1233,42 @@ function parseBulkRow(line){
   return validateRowColumns(cols);
 }
 
+// Handles more than native Date() does on its own: native parsing assumes
+// US-style MM/DD/YYYY and simply fails on anything like "18/04/2028" since
+// 18 isn't a valid month. This adds an explicit fallback for numeric
+// D/M/Y-style dates, using the rule that if a component can't possibly be
+// a month (>12), it must be the day.
+function parseFlexibleDate(str){
+  str = str.trim();
+  if(!str) return null;
+
+  const native = new Date(str);
+  if(!isNaN(native.getTime())) return native;
+
+  const m = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+  if(m){
+    let [, a, b, y] = m.map(Number);
+    if(y < 100) y += 2000;
+    let day, month;
+    if(a > 12 && b <= 12){ day = a; month = b; }        // must be D/M/Y
+    else if(b > 12 && a <= 12){ month = a; day = b; }   // must be M/D/Y
+    else { day = a; month = b; }                        // ambiguous (both ≤12); assume D/M/Y since that's the more common convention worldwide
+    const d = new Date(y, month-1, day);
+    if(!isNaN(d.getTime()) && d.getMonth() === month-1) return d; // getMonth check catches invalid days like Feb 30 rolling over
+  }
+  return null;
+}
+
+// Duplicate check for bulk import: matches on Product + Country, the
+// combination that actually identifies a unique registration in this
+// data model. Existing entries win; a duplicate import is skipped.
+function isDuplicate(row){
+  return registrations.some(r =>
+    r.product.trim().toLowerCase() === row.product.trim().toLowerCase() &&
+    r.country === row.country
+  );
+}
+
 function validateRowColumns(cols){
   const [productRaw, countryRaw, statusRaw, expiryRaw, regNumberRaw, authorityRaw] = cols.map(c => (c===undefined||c===null) ? "" : String(c).trim());
   if(!productRaw || !countryRaw || !statusRaw) return {error: "missing product, country, or status"};
@@ -1243,13 +1279,13 @@ function validateRowColumns(cols){
   const status = statusLookup[statusRaw.toLowerCase()];
   if(!status) return {error: `status "${statusRaw}" not recognized (use Approved, Pending, Expiring, or Not Filed)`};
 
-  // any common date format is accepted (MM/DD/YYYY, "15 Mar 2028", ISO, etc.),
-  // but it's normalized to YYYY-MM-DD for storage so sorting and date math
-  // stay consistent regardless of how it was originally typed or pasted
+  // any common date format is accepted (MM/DD/YYYY, DD/MM/YYYY, "15 Mar 2028",
+  // ISO, etc.), but it's normalized to YYYY-MM-DD for storage so sorting and
+  // date math stay consistent regardless of how it was originally typed
   let expiryDate = null;
   if(expiryRaw && expiryRaw.trim()){
-    const d = new Date(expiryRaw.trim());
-    if(isNaN(d.getTime())) return {error: `expiry date "${expiryRaw}" not recognized as a date`};
+    const d = parseFlexibleDate(expiryRaw);
+    if(!d) return {error: `expiry date "${expiryRaw}" not recognized as a date`};
     expiryDate = normalizeDate(d);
   }
 
@@ -1265,10 +1301,13 @@ document.getElementById('btnBulkImport').addEventListener('click', function(){
     return;
   }
   const added = [], errors = [];
+  let skippedDuplicates = 0;
   lines.forEach((line, i) => {
     const result = parseBulkRow(line);
-    if(result.row) added.push(result.row);
-    else errors.push(`Line ${i+1}: ${result.error}`);
+    if(result.row){
+      if(isDuplicate(result.row)) skippedDuplicates++;
+      else added.push(result.row);
+    } else errors.push(`Line ${i+1}: ${result.error}`);
   });
   added.forEach(r => registrations.push(r));
   if(added.length > 0){ persist(); populateFormOptions(); renderAll(); }
@@ -1333,8 +1372,9 @@ document.getElementById('bulkFileInput').addEventListener('change', function(e){
       const added = [], errors = [];
       rows.forEach((cols, i) => {
         const result = validateRowColumns(cols);
-        if(result.row) added.push(result.row);
-        else errors.push(`Row ${i+1}: ${result.error}`);
+        if(result.row){
+          if(!isDuplicate(result.row)) added.push(result.row);
+        } else errors.push(`Row ${i+1}: ${result.error}`);
       });
       added.forEach(r => registrations.push(r));
       if(added.length > 0){ persist(); populateFormOptions(); renderAll(); }
