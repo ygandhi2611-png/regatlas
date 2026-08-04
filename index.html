@@ -356,6 +356,25 @@
           </div>
         </div>
 
+        <div class="panel collapsed">
+          <div class="panel-chrome"><button class="panel-dots" type="button" title="Click to collapse/expand" aria-expanded="true"><span></span><span></span><span></span></button>
+            <span class="panel-file">Bulk Import</span><span class="panel-tag">click to expand</span></div>
+          <div class="panel-body">
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:.7rem;line-height:1.5;">
+              Copy a range of cells directly from Excel or Google Sheets and paste below, one row per line. Column order: <b>Product, Country, Status, Expiry (YYYY-MM-DD), Reg. Number, Authority</b>. The last two columns are optional; Expiry can be left blank.
+            </p>
+            <label for="bulkImportArea" class="sr-only">Paste rows to bulk import</label>
+            <textarea id="bulkImportArea" rows="5" placeholder="NovaDerm Gel 2%&#9;Japan&#9;Pending&#9;&#9;&#9;PMDA
+CardioFlow Stent&#9;Brazil&#9;Approved&#9;2027-06-01&#9;BR-ANVISA-991&#9;ANVISA"
+              style="width:100%;font-family:var(--mono);font-size:.78rem;padding:10px;border:1px solid var(--border-strong);
+              border-radius:var(--r);background:var(--bg);color:var(--ink);resize:vertical;"></textarea>
+            <div class="form-toolbar" style="margin-top:.7rem;">
+              <button type="button" class="btn-add" id="btnBulkImport" style="margin-top:0;">Parse &amp; Add Rows</button>
+            </div>
+            <div id="bulkImportResult" style="font-size:.76rem;margin-top:.8rem;line-height:1.6;"></div>
+          </div>
+        </div>
+
         <div class="panel">
           <div class="panel-chrome"><button class="panel-dots" type="button" title="Click to collapse/expand" aria-expanded="true"><span></span><span></span><span></span></button>
             <span class="panel-file">Filter</span><span class="panel-tag" id="filterCount">11 of 11</span></div>
@@ -1176,6 +1195,65 @@ document.getElementById('btnReset').addEventListener('click', function(){
   if(!confirm("Reset to the original sample dataset? This clears anything you've added.")) return;
   registrations = JSON.parse(SEED_DATA);
   persist(); populateFormOptions(); renderAll();
+});
+
+// ============================================================
+// BULK IMPORT — paste rows straight out of Excel/Sheets.
+// Copying cells from a spreadsheet and pasting as plain text
+// produces tab-separated rows; this also accepts comma-separated
+// as a fallback for pasted CSV text.
+// ============================================================
+const countryLookup = Object.fromEntries(Object.keys(COUNTRY_META).map(c => [c.toLowerCase(), c]));
+const statusLookup = Object.fromEntries(Object.entries(statusLabel).map(([k,v]) => [v.toLowerCase(), k]));
+statusLookup["not filed"] = "notfiled"; statusLookup["notfiled"] = "notfiled";
+statusLookup["expiring <90 days"] = "expiring"; statusLookup["expiring<90 days"] = "expiring";
+
+function parseBulkRow(line){
+  const delimiter = line.includes("\t") ? "\t" : ",";
+  const cols = line.split(delimiter).map(c => c.trim());
+  const [productRaw, countryRaw, statusRaw, expiryRaw, regNumberRaw, authorityRaw] = cols;
+  if(!productRaw || !countryRaw || !statusRaw) return {error: "missing product, country, or status"};
+
+  const country = countryLookup[countryRaw.toLowerCase()];
+  if(!country) return {error: `country "${countryRaw}" not recognized`};
+
+  const status = statusLookup[statusRaw.toLowerCase()];
+  if(!status) return {error: `status "${statusRaw}" not recognized (use Approved, Pending, Expiring, or Not Filed)`};
+
+  let expiryDate = null;
+  if(expiryRaw && expiryRaw.trim()){
+    const d = new Date(expiryRaw.trim());
+    if(isNaN(d.getTime())) return {error: `expiry date "${expiryRaw}" not recognized (use YYYY-MM-DD)`};
+    expiryDate = expiryRaw.trim();
+  }
+
+  return {row: {product: productRaw, country, status, expiryDate, regNumber: (regNumberRaw||"").trim(), authority: (authorityRaw||"").trim()}};
+}
+
+document.getElementById('btnBulkImport').addEventListener('click', function(){
+  const raw = document.getElementById('bulkImportArea').value;
+  const lines = raw.split("\n").map(l => l.trim()).filter(Boolean);
+  const resultEl = document.getElementById('bulkImportResult');
+  if(lines.length === 0){
+    resultEl.innerHTML = `<span style="color:var(--soft)">Paste some rows first.</span>`;
+    return;
+  }
+  const added = [], errors = [];
+  lines.forEach((line, i) => {
+    const result = parseBulkRow(line);
+    if(result.row) added.push(result.row);
+    else errors.push(`Line ${i+1}: ${result.error}`);
+  });
+  added.forEach(r => registrations.push(r));
+  if(added.length > 0){ persist(); populateFormOptions(); renderAll(); }
+
+  let html = `<div style="color:var(--green);font-weight:600;">${added.length} row${added.length!==1?'s':''} added.</div>`;
+  if(errors.length > 0){
+    html += `<div style="color:var(--red);margin-top:.4rem;">${errors.length} row${errors.length!==1?'s':''} skipped:</div>`;
+    html += `<ul style="margin:.3rem 0 0 1.1rem;color:var(--red);">${errors.map(e => `<li>${e}</li>`).join('')}</ul>`;
+  }
+  resultEl.innerHTML = html;
+  if(added.length > 0) document.getElementById('bulkImportArea').value = '';
 });
 
 document.getElementById('btnExport').addEventListener('click', function(){
