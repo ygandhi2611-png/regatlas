@@ -324,7 +324,7 @@
       </div>
       <button id="introDismiss" title="Hide this">×</button>
     </div>
-    <div class="intro-disclaimer">⚠ Health score weights are illustrative, not a regulator-issued metric. Not connected to any live regulatory data source, since no such public source exists for company-level registration status.</div>
+    <div class="intro-disclaimer">⚠ Health score weights and authority lead-time estimates are both illustrative approximations, not regulator-issued figures. Not connected to any live regulatory data source, since no such public source exists for company-level registration status.</div>
   </div>
 
   </header>
@@ -348,7 +348,8 @@
                     <option value="approved">Approved</option><option value="pending">Pending</option>
                     <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
                   </select></div>
-                <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" /></div>
+                <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" />
+                  <span style="font-size:.65rem;color:var(--soft);margin-top:2px;">Only for Approved/Expiring, or a Pending renewal with a reg. number already assigned</span></div>
               </div>
               <div class="form-row-2">
                 <div class="field"><label for="inRegNumber">Registration / license number (optional)</label>
@@ -601,11 +602,11 @@ const nameByISO = Object.fromEntries(Object.entries(COUNTRY_META).map(([k,v]) =>
 
 let registrations = [
   {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02", regNumber:"NDA-021458", authority:"FDA"},
-  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"EMA"},
-  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"EMA"},
+  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"BfArM"},
+  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"ANSM"},
   {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30", regNumber:"UK-MA-11890", authority:"MHRA"},
   {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"MDL-2026-3390", authority:"Health Canada"},
-  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"ES-2026-1187", authority:"EMA"},
+  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"ES-2026-1187", authority:"AEMPS"},
   {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"JP-PMDA-70215", authority:"PMDA"},
   {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null, regNumber:"", authority:"TGA"},
   {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01", regNumber:"IN-CDSCO-5521", authority:"CDSCO"},
@@ -623,7 +624,7 @@ const stageByStatus = {approved:{stage:"Approved", pct:100}, expiring:{stage:"Ne
 const urgency = {expiring:4, notfiled:3, pending:2, approved:1};
 
 // ============================================================
-// REGIONAL LEAD-TIME RISK — a flat "90 days" threshold treats every
+// REGIONAL LEAD-TIME RISK: a flat "90 days" threshold treats every
 // market the same, which is wrong: ANVISA/NMPA renewals routinely need
 // 12-18 months of prep+review, FDA needs far less. This replaces that
 // flat rule with per-authority lead time, so "days until expiry" becomes
@@ -646,11 +647,21 @@ const REGULATORY_LEAD_TIMES = {
   "SFDA":            {prepMonths:3, reviewMonths:9},
   "HSA":             {prepMonths:2, reviewMonths:4},
   "TFDA":            {prepMonths:4, reviewMonths:8},
+  "BfArM":           {prepMonths:3, reviewMonths:6},
+  "ANSM":            {prepMonths:3, reviewMonths:6},
+  "AEMPS":           {prepMonths:3, reviewMonths:6},
   "Default":         {prepMonths:3, reviewMonths:3}
 };
 
 function getLeadTimeStatus(r){
   if(!r.expiryDate) return null;
+  // Not Filed has nothing to renew; a Pending entry only counts as a
+  // renewal-in-progress (with a real clock running against it) if it
+  // already has a registration number. A brand-new filing with no number
+  // yet has nothing to expire, so it gets no Action Deadline treatment.
+  if(r.status === "notfiled") return null;
+  if(r.status === "pending" && !r.regNumber) return null;
+
   const leadTime = REGULATORY_LEAD_TIMES[r.authority] || REGULATORY_LEAD_TIMES["Default"];
   const totalMonths = leadTime.prepMonths + leadTime.reviewMonths;
   const expiry = new Date(r.expiryDate);
@@ -891,14 +902,14 @@ function renderActionRail(){
         : `<div class="rail-empty">No products below the health threshold. See Action Deadlines below, that's a separate, lead-time-based check.</div>`)
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
-  html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false">ⓘ</button></h4>
+  html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false" aria-label="Explain illustrative action-deadline methodology">ⓘ</button></h4>
     <div id="railInfoText" class="rail-info-text" style="display:none;">Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.</div>
     <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
     ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
     : soon.map(r => {
         const d = r.lead.daysRemainingToAct;
-        const statusText = d < 0 ? `Action overdue by ${Math.abs(d)}d` : `${d}d until you need to start`;
+        const statusText = d < 0 ? `Illustrative planning date passed by ${Math.abs(d)}d` : `${d}d until illustrative planning date`;
         const borderColor = d < 0 ? '#B23A2E' : d < 30 ? '#B4720A' : '#64748B';
         return `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:${borderColor}">
           <div class="r-title">${r.product}</div>
@@ -1234,7 +1245,7 @@ function populateFormOptions(){
   const productList = document.getElementById('productList');
   const existingProducts = [...new Set(registrations.map(r => r.product))];
   productList.innerHTML = existingProducts.map(p => `<option value="${p}"></option>`).join('');
-  const commonAuthorities = ["FDA","EMA","MHRA","PMDA","Health Canada","TGA","CDSCO","ANVISA","COFEPRIS","NMPA","MFDS","SFDA","HSA","TFDA"];
+  const commonAuthorities = ["FDA","EMA","MHRA","PMDA","Health Canada","TGA","CDSCO","ANVISA","COFEPRIS","NMPA","MFDS","SFDA","HSA","TFDA","BfArM","ANSM","AEMPS"];
   const existingAuthorities = registrations.map(r => r.authority).filter(Boolean);
   const authorityList = document.getElementById('authorityList');
   authorityList.innerHTML = [...new Set([...commonAuthorities, ...existingAuthorities])].map(a => `<option value="${a}"></option>`).join('');
@@ -1279,7 +1290,7 @@ document.getElementById('btnReset').addEventListener('click', function(){
 });
 
 // ============================================================
-// BULK IMPORT — paste rows straight out of Excel/Sheets.
+// BULK IMPORT: paste rows straight out of Excel/Sheets.
 // Copying cells from a spreadsheet and pasting as plain text
 // produces tab-separated rows; this also accepts comma-separated
 // as a fallback for pasted CSV text.
