@@ -324,7 +324,7 @@
       </div>
       <button id="introDismiss" title="Hide this">×</button>
     </div>
-    <div class="intro-disclaimer">⚠ Health score weights and authority lead-time estimates are both illustrative approximations, not regulator-issued figures. Not connected to any live regulatory data source, since no such public source exists for company-level registration status.</div>
+    <div class="intro-disclaimer">⚠ Health score weights and authority lead-time figures are both estimates, not regulator-issued figures. Not connected to any live regulatory data source, since no such public source exists for company-level registration status.</div>
   </div>
 
   </header>
@@ -461,12 +461,12 @@ CardioFlow Stent&#9;Brazil&#9;Approved&#9;2027-06-01&#9;BR-ANVISA-991&#9;ANVISA"
               <li><span>−10</span> more if you're within 30 days of needing to start the renewal for that authority</li>
               <li><span>−25</span> more if that action deadline has already passed, the worst case</li>
             </ul>
-            <p style="font-size:.74rem;color:var(--soft);margin-bottom:.6rem;">Clamped between 0–100. Weights and lead times below are illustrative approximations, not officially published or regulator-issued figures; real review times vary case by case.</p>
-            <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Illustrative total lead time (prep + review) by authority: FDA/EMA ~9mo · MHRA/HSA ~6mo · Health Canada/TGA ~8mo · MFDS ~11mo · CDSCO/COFEPRIS/SFDA ~12mo · TFDA ~12mo · PMDA ~16mo · ANVISA/NMPA ~18mo · unlisted authority ~6mo default.</p>
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:.6rem;">Clamped between 0–100. Weights and lead times below are estimates, not officially published or regulator-issued figures; real review times vary case by case.</p>
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Estimated total lead time (prep + review) by authority: FDA/EMA ~9mo · MHRA/HSA ~6mo · Health Canada/TGA ~8mo · MFDS ~11mo · CDSCO/COFEPRIS/SFDA ~12mo · TFDA ~12mo · PMDA ~16mo · ANVISA/NMPA ~18mo · unlisted authority ~6mo default.</p>
 
             <h3 class="howto-title" style="font-size:.9rem;margin-top:1.2rem;">A worked example</h3>
             <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;">
-              Say a product is registered in 4 countries: Approved in two, Pending in one, and Expiring in the fourth, an ANVISA registration with 300 days left. ANVISA's illustrative lead time is 18 months (~540 days), so the action deadline already passed 240 days ago, even though the license itself doesn't expire for another 300 days.
+              Say a product is registered in 4 countries: Approved in two, Pending in one, and Expiring in the fourth, an ANVISA registration with 300 days left. ANVISA's estimated lead time is 18 months (~540 days), so the action deadline already passed 240 days ago, even though the license itself doesn't expire for another 300 days.
             </p>
             <ul class="howto-formula">
               <li><span>0</span> for the two Approved markets, no penalty</li>
@@ -629,7 +629,7 @@ const urgency = {expiring:4, notfiled:3, pending:2, approved:1};
 // 12-18 months of prep+review, FDA needs far less. This replaces that
 // flat rule with per-authority lead time, so "days until expiry" becomes
 // "days until you needed to have already started." Values are
-// illustrative approximations for demonstration, not officially
+// estimated figures for demonstration, not officially
 // published guaranteed timelines; real review times vary case by case.
 // ============================================================
 const REGULATORY_LEAD_TIMES = {
@@ -902,14 +902,14 @@ function renderActionRail(){
         : `<div class="rail-empty">No products below the health threshold. See Action Deadlines below, that's a separate, lead-time-based check.</div>`)
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
-  html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false" aria-label="Explain illustrative action-deadline methodology">ⓘ</button></h4>
+  html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false" aria-label="Explain estimated action-deadline methodology">ⓘ</button></h4>
     <div id="railInfoText" class="rail-info-text" style="display:none;">Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.</div>
     <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
     ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
     : soon.map(r => {
         const d = r.lead.daysRemainingToAct;
-        const statusText = d < 0 ? `Illustrative planning date passed by ${Math.abs(d)}d` : `${d}d until illustrative planning date`;
+        const statusText = d < 0 ? `Estimated planning date passed by ${Math.abs(d)}d` : `${d}d until estimated planning date`;
         const borderColor = d < 0 ? '#B23A2E' : d < 30 ? '#B4720A' : '#64748B';
         return `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:${borderColor}">
           <div class="r-title">${r.product}</div>
