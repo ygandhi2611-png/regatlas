@@ -443,29 +443,33 @@ CardioFlow Stent&#9;Brazil&#9;Approved&#9;2027-06-01&#9;BR-ANVISA-991&#9;ANVISA"
               A simple additive formula per product, starting at 100. Not an AI judgment, every point traces to a specific registration:
             </p>
             <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
-              The numbers follow a severity scale, from mildly routine to actively urgent. A market waiting on a decision is normal and costs the least. A market you haven't even filed in yet is more concerning, since nothing is even in motion. A market about to lapse is the closest thing to an emergency here, so it costs the most. The two date-based penalties stack on top of that, since "expiring sometime" and "expiring in three weeks" are not the same level of urgent even under the same status label.
+              The numbers follow a severity scale, from mildly routine to actively urgent. A market waiting on a decision is normal and costs the least. A market you haven't even filed in yet is more concerning, since nothing is even in motion. A market about to lapse is the closest thing to an emergency here, so it costs the most.
+            </p>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;">
+              The date-based penalty isn't a flat "90 days" rule. A flat threshold treats every market the same, but a renewal that needs 18 months of prep and review (ANVISA, NMPA) is already overdue for action long before one that only needs a few months (FDA). So instead of "days until expiry," this checks "days until you needed to have already started," using an authority-specific lead-time estimate.
             </p>
             <ul class="howto-formula">
               <li><span>−5</span> for each market marked <b>Pending</b>: routine, still under review</li>
               <li><span>−12</span> for each market marked <b>Not Filed</b>: nothing submitted yet</li>
               <li><span>−18</span> for each market marked <b>Expiring</b>: active registration about to lapse</li>
-              <li><span>−10</span> more if a registration's expiry is under 90 days away</li>
-              <li><span>−20</span> more if it's already past its expiry date, the worst case</li>
+              <li><span>−10</span> more if you're within 30 days of needing to start the renewal for that authority</li>
+              <li><span>−25</span> more if that action deadline has already passed, the worst case</li>
             </ul>
-            <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Clamped between 0–100. Weights are illustrative, not a regulator-issued metric.</p>
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:.6rem;">Clamped between 0–100. Weights and lead times below are illustrative approximations, not officially published or regulator-issued figures; real review times vary case by case.</p>
+            <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Illustrative total lead time (prep + review) by authority: FDA/EMA ~9mo · MHRA/HSA ~6mo · Health Canada/TGA ~8mo · MFDS ~11mo · CDSCO/COFEPRIS/SFDA ~12mo · TFDA ~12mo · PMDA ~16mo · ANVISA/NMPA ~18mo · unlisted authority ~6mo default.</p>
 
             <h3 class="howto-title" style="font-size:.9rem;margin-top:1.2rem;">A worked example</h3>
             <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;">
-              Say a product is registered in 4 countries: Approved in two, Pending in one, and Expiring in the fourth with 45 days left.
+              Say a product is registered in 4 countries: Approved in two, Pending in one, and Expiring in the fourth, an ANVISA registration with 300 days left. ANVISA's illustrative lead time is 18 months (~540 days), so the action deadline already passed 240 days ago, even though the license itself doesn't expire for another 300 days.
             </p>
             <ul class="howto-formula">
               <li><span>0</span> for the two Approved markets, no penalty</li>
               <li><span>−5</span> for the Pending market</li>
               <li><span>−18</span> for the Expiring market</li>
-              <li><span>−10</span> more since that expiry is under 90 days away</li>
+              <li><span>−25</span> more since its action deadline is already overdue</li>
             </ul>
             <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem;">
-              Total penalty: 5 + 18 + 10 = 33. Score: 100 − 33 = <b>67</b>, which falls in the Watch band.
+              Total penalty: 5 + 18 + 25 = 48. Score: 100 − 48 = <b>52</b>, still Watch, but far closer to At Risk than a flat 90-day rule would have shown for a license with 300 days left.
             </p>
 
             <h3 class="howto-title" style="font-size:.92rem;margin-top:1rem;">What the bands mean</h3>
@@ -613,6 +617,48 @@ const stageByStatus = {approved:{stage:"Approved", pct:100}, expiring:{stage:"Ne
   pending:{stage:"Under Review", pct:55}, notfiled:{stage:"Not Filed", pct:0}};
 const urgency = {expiring:4, notfiled:3, pending:2, approved:1};
 
+// ============================================================
+// REGIONAL LEAD-TIME RISK — a flat "90 days" threshold treats every
+// market the same, which is wrong: ANVISA/NMPA renewals routinely need
+// 12-18 months of prep+review, FDA needs far less. This replaces that
+// flat rule with per-authority lead time, so "days until expiry" becomes
+// "days until you needed to have already started." Values are
+// illustrative approximations for demonstration, not officially
+// published guaranteed timelines; real review times vary case by case.
+// ============================================================
+const REGULATORY_LEAD_TIMES = {
+  "FDA":            {prepMonths:3, reviewMonths:6},
+  "EMA":             {prepMonths:3, reviewMonths:6},
+  "MHRA":            {prepMonths:2, reviewMonths:4},
+  "PMDA":            {prepMonths:4, reviewMonths:12},
+  "Health Canada":   {prepMonths:3, reviewMonths:5},
+  "TGA":             {prepMonths:3, reviewMonths:5},
+  "CDSCO":           {prepMonths:4, reviewMonths:8},
+  "ANVISA":          {prepMonths:6, reviewMonths:12},
+  "COFEPRIS":        {prepMonths:4, reviewMonths:8},
+  "NMPA":            {prepMonths:6, reviewMonths:12},
+  "MFDS":            {prepMonths:3, reviewMonths:8},
+  "SFDA":            {prepMonths:3, reviewMonths:9},
+  "HSA":             {prepMonths:2, reviewMonths:4},
+  "TFDA":            {prepMonths:4, reviewMonths:8},
+  "Default":         {prepMonths:3, reviewMonths:3}
+};
+
+function getLeadTimeStatus(r){
+  if(!r.expiryDate) return null;
+  const leadTime = REGULATORY_LEAD_TIMES[r.authority] || REGULATORY_LEAD_TIMES["Default"];
+  const totalMonths = leadTime.prepMonths + leadTime.reviewMonths;
+  const expiry = new Date(r.expiryDate);
+  const actionDeadline = new Date(expiry);
+  actionDeadline.setMonth(actionDeadline.getMonth() - totalMonths);
+  const daysRemainingToAct = Math.round((actionDeadline - new Date()) / 86400000);
+  return {
+    authorityLabel: REGULATORY_LEAD_TIMES[r.authority] ? r.authority : (r.authority ? r.authority : "Unspecified authority"),
+    totalMonths, daysRemainingToAct,
+    overdue: daysRemainingToAct < 0
+  };
+}
+
 function computeHealthScores(list){
   list = list || registrations;
   const byProduct = {};
@@ -623,10 +669,10 @@ function computeHealthScores(list){
       if(r.status === "notfiled") score -= 12;
       if(r.status === "pending") score -= 5;
       if(r.status === "expiring") score -= 18;
-      if(r.expiryDate){
-        const days = Math.round((new Date(r.expiryDate) - new Date()) / 86400000);
-        if(days < 90 && days >= 0) score -= 10;
-        if(days < 0) score -= 20;
+      const lead = getLeadTimeStatus(r);
+      if(lead){
+        if(lead.overdue) score -= 25;               // past the point you should have already started
+        else if(lead.daysRemainingToAct < 30) score -= 10; // action window closing soon
       }
     });
     score = Math.max(0, Math.min(100, Math.round(score)));
@@ -828,24 +874,31 @@ function renderTimeline(){
 function renderActionRail(){
   const atRisk = computeHealthScores().filter(p => p.level !== "Healthy").slice(0, 5);
   const soon = registrations.filter(r => r.expiryDate)
-    .map(r => ({...r, days: Math.round((new Date(r.expiryDate)-new Date())/86400000)}))
-    .filter(r => r.days < 120)
-    .sort((a,b) => a.days - b.days).slice(0, 5);
+    .map(r => ({...r, lead: getLeadTimeStatus(r)}))
+    .filter(r => r.lead && r.lead.daysRemainingToAct < 120)
+    .sort((a,b) => a.lead.daysRemainingToAct - b.lead.daysRemainingToAct).slice(0, 5);
 
   let html = `<div class="rail-group"><h4>Products Needing Attention</h4>
     <div class="rail-scope">Based on overall Health Score</div>`;
   html += atRisk.length === 0
     ? (soon.length === 0
         ? `<div class="rail-empty">Nothing flagged. All products healthy.</div>`
-        : `<div class="rail-empty">No products below the health threshold. See Expiring Soonest below, that's a separate, date-based check.</div>`)
+        : `<div class="rail-empty">No products below the health threshold. See Action Deadlines below, that's a separate, lead-time-based check.</div>`)
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
-  html += `</div><div class="rail-group"><h4>Expiring Soonest</h4>
-    <div class="rail-scope">Based on registration dates, independent of Health Score</div>`;
+  html += `</div><div class="rail-group"><h4>Action Deadlines</h4>
+    <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
-    ? `<div class="rail-empty">Nothing expiring in the next 120 days.</div>`
-    : soon.map(r => `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:${r.days<0?'#B23A2E':r.days<90?'#B4720A':'#64748B'}">
-        <div class="r-title">${r.product}</div><div class="r-sub">${r.country} · ${r.days<0?'past due':r.days+'d left'}</div></div>`).join('');
+    ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
+    : soon.map(r => {
+        const d = r.lead.daysRemainingToAct;
+        const statusText = d < 0 ? `Action overdue by ${Math.abs(d)}d` : `${d}d until you need to start`;
+        const borderColor = d < 0 ? '#B23A2E' : d < 30 ? '#B4720A' : '#64748B';
+        return `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:${borderColor}">
+          <div class="r-title">${r.product}</div>
+          <div class="r-sub">${r.country} · ${r.authority || 'unspecified authority'} · ${statusText} (needs ~${r.lead.totalMonths}mo lead)</div>
+        </div>`;
+      }).join('');
   html += `</div>`;
   document.getElementById('railContent').innerHTML = html;
 
@@ -1165,7 +1218,7 @@ function populateFormOptions(){
   const productList = document.getElementById('productList');
   const existingProducts = [...new Set(registrations.map(r => r.product))];
   productList.innerHTML = existingProducts.map(p => `<option value="${p}"></option>`).join('');
-  const commonAuthorities = ["FDA","EMA","MHRA","PMDA","Health Canada","TGA","CDSCO","ANVISA","COFEPRIS","NMPA","MFDS"];
+  const commonAuthorities = ["FDA","EMA","MHRA","PMDA","Health Canada","TGA","CDSCO","ANVISA","COFEPRIS","NMPA","MFDS","SFDA","HSA","TFDA"];
   const existingAuthorities = registrations.map(r => r.authority).filter(Boolean);
   const authorityList = document.getElementById('authorityList');
   authorityList.innerHTML = [...new Set([...commonAuthorities, ...existingAuthorities])].map(a => `<option value="${a}"></option>`).join('');
