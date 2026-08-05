@@ -206,7 +206,11 @@
   .rail-group{margin-bottom:1.3rem;}
   .rail-group h4{font-family:var(--mono);font-size:.63rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
     margin-bottom:.15rem;}
-  .rail-info{color:var(--accent);cursor:help;font-size:.75rem;letter-spacing:0;text-transform:none;font-weight:700;}
+  .rail-info{color:var(--accent);cursor:pointer;font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:700;
+    border:none;background:none;padding:0;font-family:inherit;}
+  .rail-info:hover{color:var(--ink);}
+  .rail-info-text{font-size:.72rem;color:var(--muted);line-height:1.5;background:var(--bg);border-left:3px solid var(--accent);
+    padding:.5rem .7rem;border-radius:0 5px 5px 0;margin-bottom:.6rem;}
   .rail-scope{font-size:.68rem;color:var(--soft);font-style:italic;margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
   .rail-item{display:flex;flex-direction:column;gap:2px;padding:.55rem .6rem;border-radius:6px;cursor:pointer;
     border-left:3px solid;margin-bottom:5px;transition:background .12s;}
@@ -887,7 +891,8 @@ function renderActionRail(){
         : `<div class="rail-empty">No products below the health threshold. See Action Deadlines below, that's a separate, lead-time-based check.</div>`)
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
-  html += `</div><div class="rail-group"><h4>Action Deadlines <span class="rail-info" title="Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.">ⓘ</span></h4>
+  html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false">ⓘ</button></h4>
+    <div id="railInfoText" class="rail-info-text" style="display:none;">Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.</div>
     <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
     ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
@@ -908,6 +913,16 @@ function renderActionRail(){
     filterQuery = el.dataset.filter; document.getElementById('filterInput').value = filterQuery;
     switchTab('register'); renderRegisterTable();
   }));
+
+  const infoBtn = document.getElementById('railInfoBtn');
+  if(infoBtn){
+    infoBtn.addEventListener('click', () => {
+      const text = document.getElementById('railInfoText');
+      const showing = text.style.display !== 'none';
+      text.style.display = showing ? 'none' : 'block';
+      infoBtn.setAttribute('aria-expanded', String(!showing));
+    });
+  }
 }
 
 function renderAll(){
