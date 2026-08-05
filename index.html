@@ -206,6 +206,7 @@
   .rail-group{margin-bottom:1.3rem;}
   .rail-group h4{font-family:var(--mono);font-size:.63rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
     margin-bottom:.15rem;}
+  .rail-info{color:var(--accent);cursor:help;font-size:.75rem;letter-spacing:0;text-transform:none;font-weight:700;}
   .rail-scope{font-size:.68rem;color:var(--soft);font-style:italic;margin-bottom:.6rem;padding-bottom:.4rem;border-bottom:1px solid var(--border);}
   .rail-item{display:flex;flex-direction:column;gap:2px;padding:.55rem .6rem;border-radius:6px;cursor:pointer;
     border-left:3px solid;margin-bottom:5px;transition:background .12s;}
@@ -541,7 +542,7 @@ CardioFlow Stent&#9;Brazil&#9;Approved&#9;2027-06-01&#9;BR-ANVISA-991&#9;ANVISA"
         </div>
         <div class="howto-step">
           <div class="howto-num">3</div>
-          <div><strong>Watch the Action Queue</strong><p>The panel on the right always shows what needs attention first: products flagged "At Risk" or "Watch," and registrations expiring soonest, no matter which tab you're on.</p></div>
+          <div><strong>Watch the Action Queue</strong><p>The panel on the right always shows what needs attention first: products flagged "At Risk" or "Watch," and Action Deadlines, no matter which tab you're on. Action Deadlines aren't just "days until expiry": they factor in how long that specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months yet.</p></div>
         </div>
         <div class="howto-step">
           <div class="howto-num">4</div>
@@ -886,7 +887,7 @@ function renderActionRail(){
         : `<div class="rail-empty">No products below the health threshold. See Action Deadlines below, that's a separate, lead-time-based check.</div>`)
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
-  html += `</div><div class="rail-group"><h4>Action Deadlines</h4>
+  html += `</div><div class="rail-group"><h4>Action Deadlines <span class="rail-info" title="Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.">ⓘ</span></h4>
     <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
     ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
