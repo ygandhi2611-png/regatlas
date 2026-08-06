@@ -826,7 +826,9 @@ function renderRegisterTable(){
             ? `<button type="button" class="mark-filed-btn edit-filed-btn" data-idx="${idx}" style="margin-top:3px;font-size:.68rem;font-family:var(--sans);font-weight:600;color:var(--green);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;">✓ Renewal filed ${r.renewalFiled} (edit)</button>`
             : r.status==='expiring'
               ? `<button type="button" class="mark-filed-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark renewal filed</button>`
-              : ''
+              : r.status==='notfiled'
+                ? `<button type="button" class="mark-asfiled-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark as filed</button>`
+                : ''
         }</td>
         <td data-label="Expiry" style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
         <td data-label=""><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
@@ -873,6 +875,20 @@ function renderRegisterTable(){
         registrations[idx].renewalFiled = normalizeDate(d);
       }
       persist(); renderAll();
+    });
+  });
+
+  document.querySelectorAll('.mark-asfiled-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      const input = prompt(
+        "You've filed this. If you already have an application/tracking number, enter it now (or leave blank to add it later):",
+        ""
+      );
+      if(input === null) return; // cancelled, no change made
+      registrations[idx].status = "pending";
+      if(input.trim() !== "") registrations[idx].regNumber = input.trim();
+      persist(); populateFormOptions(); renderAll();
     });
   });
 }
