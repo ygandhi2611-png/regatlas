@@ -206,12 +206,12 @@
   .rail-group{margin-bottom:1.3rem;}
   .rail-group h4{font-family:var(--mono);font-size:.63rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
     margin-bottom:.15rem;}
-  .hover-info{position:relative;display:inline-block;color:var(--accent);font-size:.7rem;font-weight:700;cursor:help;
+  .hover-info{position:relative;color:var(--accent);font-size:.7rem;font-weight:700;cursor:help;
     text-transform:none;letter-spacing:0;}
-  .hover-tip{position:absolute;bottom:135%;left:0;background:var(--ink);color:#fff;font-family:var(--sans);
-    font-size:.68rem;font-weight:400;line-height:1.5;padding:8px 10px;border-radius:5px;width:230px;
-    opacity:0;visibility:hidden;transition:opacity .15s;z-index:20;text-transform:none;letter-spacing:0;}
-  .hover-info:hover .hover-tip{opacity:1;visibility:visible;}
+  .form-hover-tip{position:fixed;background:var(--ink);color:#fff;font-family:var(--sans);font-size:.68rem;
+    font-weight:400;line-height:1.5;padding:8px 10px;border-radius:5px;width:230px;opacity:0;visibility:hidden;
+    transition:opacity .15s;z-index:1000;pointer-events:none;}
+  .form-hover-tip.show{opacity:1;visibility:visible;}
 
   .rail-info{color:var(--accent);cursor:pointer;font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:700;
     border:none;background:none;padding:0;font-family:inherit;}
@@ -350,12 +350,12 @@
                   <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
                   <datalist id="productList"></datalist></div>
                 <div class="field"><label for="inCountry">Country</label><select id="inCountry" required></select></div>
-                <div class="field"><label for="inStatus">Status <span class="hover-info">ⓘ<span class="hover-tip">Already filed a renewal? Switch to Pending, same expiry and reg. number. The urgency drops since you're now waiting on the authority, not the other way around.</span></span></label>
+                <div class="field"><label for="inStatus">Status <span class="hover-info" data-tip="Already filed a renewal? Switch to Pending, same expiry and reg. number. The urgency drops since you're now waiting on the authority, not the other way around.">ⓘ</span></label>
                   <select id="inStatus" required>
                     <option value="approved">Approved</option><option value="pending">Pending</option>
                     <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
                   </select></div>
-                <div class="field"><label for="inExpiry">Expiry (optional) <span class="hover-info">ⓘ<span class="hover-tip">Only meaningful for Approved/Expiring, or a Pending renewal with a registration number already assigned.</span></span></label>
+                <div class="field"><label for="inExpiry">Expiry (optional) <span class="hover-info" data-tip="Only meaningful for Approved/Expiring, or a Pending renewal with a registration number already assigned.">ⓘ</span></label>
                   <input id="inExpiry" type="date" /></div>
               </div>
               <div class="form-row-2">
@@ -364,7 +364,7 @@
                 <div class="field"><label for="inAuthority">Health authority (optional)</label>
                   <input id="inAuthority" list="authorityList" placeholder="e.g. FDA, EMA, MHRA, PMDA" />
                   <datalist id="authorityList"></datalist></div>
-                <div class="field"><label for="inRenewalFiled">Renewal filed on (optional) <span class="hover-info">ⓘ<span class="hover-tip">If you've already applied for the renewal, set this so Action Deadlines stop flagging it as urgent, it moves to a separate "Awaiting Decision" list instead.</span></span></label>
+                <div class="field"><label for="inRenewalFiled">Renewal filed on (optional) <span class="hover-info" data-tip="If you've already applied for the renewal, set this so Action Deadlines stop flagging it as urgent, it moves to a separate &quot;Awaiting Decision&quot; list instead.">ⓘ</span></label>
                   <input id="inRenewalFiled" type="date" /></div>
               </div>
               <button type="submit" class="btn-add">+ Add Entry</button>
@@ -821,7 +821,7 @@ function renderRegisterTable(){
         <td data-label="Authority" style="${r.authority ? 'color:var(--muted)' : 'color:var(--soft);font-style:italic'}">${r.authority || 'not on file'}</td>
         <td data-label="Status"><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span>${
           r.status==='expiring' && r.renewalFiled
-            ? `<div style="color:var(--green);font-size:.68rem;font-weight:600;margin-top:3px;">✓ Renewal filed ${r.renewalFiled}</div>`
+            ? `<button type="button" class="mark-filed-btn edit-filed-btn" data-idx="${idx}" style="margin-top:3px;font-size:.68rem;font-family:var(--sans);font-weight:600;color:var(--green);background:none;border:none;padding:0;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;">✓ Renewal filed ${r.renewalFiled} (edit)</button>`
             : r.status==='expiring'
               ? `<button type="button" class="mark-filed-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark renewal filed</button>`
               : ''
@@ -851,17 +851,25 @@ function renderRegisterTable(){
   document.querySelectorAll('.mark-filed-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = +btn.dataset.idx;
-      const input = prompt("Date the renewal was filed (YYYY-MM-DD, or leave blank for today):");
-      if(input === null) return; // cancelled
-      let dateStr;
+      const isEdit = btn.classList.contains('edit-filed-btn');
+      const current = registrations[idx].renewalFiled;
+      const promptText = isEdit
+        ? `Correct the date (YYYY-MM-DD), or clear this box entirely to un-mark it as filed:`
+        : "Date the renewal was filed (YYYY-MM-DD, or leave blank for today):";
+      const input = prompt(promptText, current || "");
+      if(input === null) return; // cancelled, no change
+
       if(input.trim() === ""){
-        dateStr = normalizeDate(new Date());
+        if(isEdit){
+          registrations[idx].renewalFiled = null; // cleared: un-mark it
+        } else {
+          registrations[idx].renewalFiled = normalizeDate(new Date());
+        }
       } else {
         const d = parseFlexibleDate(input);
-        if(!d){ alert(`"${input}" wasn't recognized as a date.`); return; }
-        dateStr = normalizeDate(d);
+        if(!d){ alert(`"${input}" wasn't recognized as a date. No change made.`); return; }
+        registrations[idx].renewalFiled = normalizeDate(d);
       }
-      registrations[idx].renewalFiled = dateStr;
       persist(); renderAll();
     });
   });
@@ -1311,6 +1319,23 @@ function populateFormOptions(){
 }
 populateFormOptions();
 
+const formTip = document.getElementById('formHoverTip');
+document.querySelectorAll('.hover-info').forEach(icon => {
+  icon.addEventListener('mouseenter', () => {
+    formTip.textContent = icon.dataset.tip;
+    const rect = icon.getBoundingClientRect();
+    formTip.style.left = rect.left + 'px';
+    formTip.style.top = (rect.bottom + 6) + 'px';
+    formTip.classList.add('show');
+    requestAnimationFrame(() => {
+      const tipRect = formTip.getBoundingClientRect();
+      if(tipRect.bottom > window.innerHeight) formTip.style.top = (rect.top - tipRect.height - 6) + 'px';
+      if(tipRect.right > window.innerWidth) formTip.style.left = (window.innerWidth - tipRect.width - 10) + 'px';
+    });
+  });
+  icon.addEventListener('mouseleave', () => { formTip.classList.remove('show'); });
+});
+
 document.getElementById('filterInput').addEventListener('input', e => { filterQuery = e.target.value; renderRegisterTable(); });
 
 document.getElementById('regForm').addEventListener('submit', function(e){
@@ -1562,5 +1587,6 @@ renderTimeline();
 renderActionRail();
 </script>
 
+<div id="formHoverTip" class="form-hover-tip"></div>
 </body>
 </html>
