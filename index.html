@@ -118,7 +118,7 @@
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
   .form-row{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:10px;align-items:end;margin-bottom:.9rem;}
-  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:.9rem;}
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:.9rem;}
   .field{display:flex;flex-direction:column;gap:4px;}
   .field label{font-family:var(--mono);font-size:.63rem;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--soft);}
   .field input,.field select{font-family:var(--sans);font-size:.81rem;padding:8px 10px;border:1px solid var(--border-strong);
@@ -206,6 +206,13 @@
   .rail-group{margin-bottom:1.3rem;}
   .rail-group h4{font-family:var(--mono);font-size:.63rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
     margin-bottom:.15rem;}
+  .hover-info{position:relative;display:inline-block;color:var(--accent);font-size:.7rem;font-weight:700;cursor:help;
+    text-transform:none;letter-spacing:0;}
+  .hover-tip{position:absolute;bottom:135%;left:0;background:var(--ink);color:#fff;font-family:var(--sans);
+    font-size:.68rem;font-weight:400;line-height:1.5;padding:8px 10px;border-radius:5px;width:230px;
+    opacity:0;visibility:hidden;transition:opacity .15s;z-index:20;text-transform:none;letter-spacing:0;}
+  .hover-info:hover .hover-tip{opacity:1;visibility:visible;}
+
   .rail-info{color:var(--accent);cursor:pointer;font-size:.8rem;letter-spacing:0;text-transform:none;font-weight:700;
     border:none;background:none;padding:0;font-family:inherit;}
   .rail-info:hover{color:var(--ink);}
@@ -343,13 +350,13 @@
                   <input id="inProduct" list="productList" placeholder="e.g. NovaDerm Gel 2%" required />
                   <datalist id="productList"></datalist></div>
                 <div class="field"><label for="inCountry">Country</label><select id="inCountry" required></select></div>
-                <div class="field"><label for="inStatus">Status</label>
+                <div class="field"><label for="inStatus">Status <span class="hover-info">ⓘ<span class="hover-tip">Already filed a renewal? Switch to Pending, same expiry and reg. number. The urgency drops since you're now waiting on the authority, not the other way around.</span></span></label>
                   <select id="inStatus" required>
                     <option value="approved">Approved</option><option value="pending">Pending</option>
                     <option value="expiring">Expiring &lt;90 days</option><option value="notfiled">Not filed</option>
                   </select></div>
-                <div class="field"><label for="inExpiry">Expiry (optional)</label><input id="inExpiry" type="date" />
-                  <span style="font-size:.65rem;color:var(--soft);margin-top:2px;">Only for Approved/Expiring, or a Pending renewal with a reg. number already assigned</span></div>
+                <div class="field"><label for="inExpiry">Expiry (optional) <span class="hover-info">ⓘ<span class="hover-tip">Only meaningful for Approved/Expiring, or a Pending renewal with a registration number already assigned.</span></span></label>
+                  <input id="inExpiry" type="date" /></div>
               </div>
               <div class="form-row-2">
                 <div class="field"><label for="inRegNumber">Registration / license number (optional)</label>
@@ -357,6 +364,8 @@
                 <div class="field"><label for="inAuthority">Health authority (optional)</label>
                   <input id="inAuthority" list="authorityList" placeholder="e.g. FDA, EMA, MHRA, PMDA" />
                   <datalist id="authorityList"></datalist></div>
+                <div class="field"><label for="inRenewalFiled">Renewal filed on (optional) <span class="hover-info">ⓘ<span class="hover-tip">If you've already applied for the renewal, set this so Action Deadlines stop flagging it as urgent, it moves to a separate "Awaiting Decision" list instead.</span></span></label>
+                  <input id="inRenewalFiled" type="date" /></div>
               </div>
               <button type="submit" class="btn-add">+ Add Entry</button>
             </form>
@@ -372,7 +381,7 @@
             <span class="panel-file">Bulk Import</span><span class="panel-tag">click to expand</span></div>
           <div class="panel-body">
             <p style="font-size:.74rem;color:var(--soft);margin-bottom:.7rem;line-height:1.5;">
-              Copy a range of cells directly from Excel or Google Sheets and paste below, one row per line. Column order: <b>Product, Country, Status, Expiry, Reg. Number, Authority</b>. Expiry accepts any common date format (it gets normalized automatically); the last two columns are optional, and Expiry can be left blank.
+              Copy a range of cells directly from Excel or Google Sheets and paste below, one row per line. Column order: <b>Product, Country, Status, Expiry, Reg. Number, Authority, Renewal Filed</b>. Expiry and Renewal Filed both accept any common date format (normalized automatically); the last three columns are all optional.
             </p>
             <label for="bulkImportArea" class="sr-only">Paste rows to bulk import</label>
             <textarea id="bulkImportArea" rows="5" placeholder="NovaDerm Gel 2%&#9;Japan&#9;Pending&#9;&#9;&#9;PMDA
@@ -463,6 +472,11 @@ CardioFlow Stent&#9;Brazil&#9;Approved&#9;2027-06-01&#9;BR-ANVISA-991&#9;ANVISA"
             </ul>
             <p style="font-size:.74rem;color:var(--soft);margin-bottom:.6rem;">Clamped between 0–100. Weights and lead times below are estimates, not officially published or regulator-issued figures; real review times vary case by case.</p>
             <p style="font-size:.74rem;color:var(--soft);margin-bottom:1.2rem;">Estimated total lead time (prep + review) by authority: FDA/EMA ~9mo · MHRA/HSA ~6mo · Health Canada/TGA ~8mo · MFDS ~11mo · CDSCO/COFEPRIS/SFDA ~12mo · TFDA ~12mo · PMDA ~16mo · ANVISA/NMPA ~18mo · unlisted authority ~6mo default.</p>
+
+            <h3 class="howto-title" style="font-size:.9rem;margin-top:1.2rem;">Already filed the renewal?</h3>
+            <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:1.2rem;">
+              "Expiring" means you haven't submitted a renewal yet, and the clock is on you. Once you've actually filed it, switch that entry's status to "Pending," keeping the same expiry date and registration number. The penalty drops from −18 to −5, since the situation genuinely is less urgent now, you're waiting on the authority's decision, not sitting on an unfiled renewal. Action Deadlines still track it the same way, since it still has a real registration number attached.
+            </p>
 
             <h3 class="howto-title" style="font-size:.9rem;margin-top:1.2rem;">A worked example</h3>
             <p style="font-size:.78rem;color:var(--muted);line-height:1.6;margin-bottom:.6rem;">
@@ -601,17 +615,17 @@ const COUNTRY_META = {
 const nameByISO = Object.fromEntries(Object.entries(COUNTRY_META).map(([k,v]) => [v.iso,k]));
 
 let registrations = [
-  {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02", regNumber:"NDA-021458", authority:"FDA"},
-  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"BfArM"},
-  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"ANSM"},
-  {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30", regNumber:"UK-MA-11890", authority:"MHRA"},
-  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"MDL-2026-3390", authority:"Health Canada"},
-  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"ES-2026-1187", authority:"AEMPS"},
-  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"JP-PMDA-70215", authority:"PMDA"},
-  {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null, regNumber:"", authority:"TGA"},
-  {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01", regNumber:"IN-CDSCO-5521", authority:"CDSCO"},
-  {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null, regNumber:"", authority:"ANVISA"},
-  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20", regNumber:"MX-COFEPRIS-4471", authority:"COFEPRIS"}
+  {product:"NovaDerm Gel 2%", country:"USA", status:"approved", expiryDate:"2027-11-02", regNumber:"NDA-021458", authority:"FDA", renewalFiled:null},
+  {product:"NovaDerm Gel 2%", country:"Germany", status:"approved", expiryDate:"2027-04-18", regNumber:"DE-2019-7731", authority:"BfArM", renewalFiled:null},
+  {product:"NovaDerm Gel 2%", country:"France", status:"approved", expiryDate:"2027-04-18", regNumber:"FR-2019-4402", authority:"ANSM", renewalFiled:null},
+  {product:"NovaDerm Gel 2%", country:"UK", status:"expiring", expiryDate:"2026-09-30", regNumber:"UK-MA-11890", authority:"MHRA", renewalFiled:"2026-06-01"},
+  {product:"CardioFlow Stent", country:"Canada", status:"pending", expiryDate:null, regNumber:"MDL-2026-3390", authority:"Health Canada", renewalFiled:null},
+  {product:"CardioFlow Stent", country:"Spain", status:"pending", expiryDate:null, regNumber:"ES-2026-1187", authority:"AEMPS", renewalFiled:null},
+  {product:"CardioFlow Stent", country:"Japan", status:"pending", expiryDate:"2026-10-15", regNumber:"JP-PMDA-70215", authority:"PMDA", renewalFiled:null},
+  {product:"BioSera Antibody", country:"Australia", status:"notfiled", expiryDate:null, regNumber:"", authority:"TGA", renewalFiled:null},
+  {product:"BioSera Antibody", country:"India", status:"approved", expiryDate:"2027-02-01", regNumber:"IN-CDSCO-5521", authority:"CDSCO", renewalFiled:null},
+  {product:"InsuPen Combo", country:"Brazil", status:"notfiled", expiryDate:null, regNumber:"", authority:"ANVISA", renewalFiled:null},
+  {product:"InsuPen Combo", country:"Mexico", status:"pending", expiryDate:"2026-12-20", regNumber:"MX-COFEPRIS-4471", authority:"COFEPRIS", renewalFiled:null}
 ];
 const SEED_DATA = JSON.stringify(registrations);
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -661,6 +675,11 @@ function getLeadTimeStatus(r){
   // yet has nothing to expire, so it gets no Action Deadline treatment.
   if(r.status === "notfiled") return null;
   if(r.status === "pending" && !r.regNumber) return null;
+  // If the renewal's already been filed, the "you need to start acting"
+  // clock stopped the moment they applied. What's left is authority
+  // review time, a different risk this simple lead-time model doesn't
+  // capture, so it's excluded here rather than mislabeled.
+  if(r.renewalFiled) return null;
 
   const leadTime = REGULATORY_LEAD_TIMES[r.authority] || REGULATORY_LEAD_TIMES["Default"];
   const totalMonths = leadTime.prepMonths + leadTime.reviewMonths;
@@ -684,7 +703,10 @@ function computeHealthScores(list){
     rows.forEach(r => {
       if(r.status === "notfiled") score -= 12;
       if(r.status === "pending") score -= 5;
-      if(r.status === "expiring") score -= 18;
+      // Expiring with a renewal already filed is a calmer state than
+      // expiring with nothing done: you're waiting on a decision, not
+      // behind on starting one. Smaller penalty reflects that.
+      if(r.status === "expiring") score -= r.renewalFiled ? 8 : 18;
       const lead = getLeadTimeStatus(r);
       if(lead){
         if(lead.overdue) score -= 25;               // past the point you should have already started
@@ -797,7 +819,13 @@ function renderRegisterTable(){
         <td data-label="Country">${r.country} <span style="color:var(--soft);font-size:.72rem">· ${region}</span></td>
         <td data-label="Reg. Number" style="font-family:var(--mono);font-size:.76rem;${r.regNumber ? 'color:var(--muted)' : 'color:var(--soft);font-style:italic'}">${r.regNumber || 'not on file'}</td>
         <td data-label="Authority" style="${r.authority ? 'color:var(--muted)' : 'color:var(--soft);font-style:italic'}">${r.authority || 'not on file'}</td>
-        <td data-label="Status"><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span></td>
+        <td data-label="Status"><span class="status-chip ${statusClass[r.status]}">${statusLabel[r.status]}</span>${
+          r.status==='expiring' && r.renewalFiled
+            ? `<div style="color:var(--green);font-size:.68rem;font-weight:600;margin-top:3px;">✓ Renewal filed ${r.renewalFiled}</div>`
+            : r.status==='expiring'
+              ? `<button type="button" class="mark-filed-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark renewal filed</button>`
+              : ''
+        }</td>
         <td data-label="Expiry" style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
         <td data-label=""><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
       </tr>`;
@@ -818,6 +846,23 @@ function renderRegisterTable(){
     btn.addEventListener('click', () => {
       registrations.splice(+btn.dataset.idx, 1);
       persist(); populateFormOptions(); renderAll();
+    });
+  });
+  document.querySelectorAll('.mark-filed-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      const input = prompt("Date the renewal was filed (YYYY-MM-DD, or leave blank for today):");
+      if(input === null) return; // cancelled
+      let dateStr;
+      if(input.trim() === ""){
+        dateStr = normalizeDate(new Date());
+      } else {
+        const d = parseFlexibleDate(input);
+        if(!d){ alert(`"${input}" wasn't recognized as a date.`); return; }
+        dateStr = normalizeDate(d);
+      }
+      registrations[idx].renewalFiled = dateStr;
+      persist(); renderAll();
     });
   });
 }
@@ -893,6 +938,9 @@ function renderActionRail(){
     .map(r => ({...r, lead: getLeadTimeStatus(r)}))
     .filter(r => r.lead && r.lead.daysRemainingToAct < 120)
     .sort((a,b) => a.lead.daysRemainingToAct - b.lead.daysRemainingToAct).slice(0, 5);
+  const awaitingDecision = registrations.filter(r => r.status === "expiring" && r.renewalFiled)
+    .map(r => ({...r, daysSinceFiled: Math.round((new Date() - new Date(r.renewalFiled)) / 86400000)}))
+    .sort((a,b) => b.daysSinceFiled - a.daysSinceFiled);
 
   let html = `<div class="rail-group"><h4>Products Needing Attention</h4>
     <div class="rail-scope">Based on overall Health Score</div>`;
@@ -903,7 +951,7 @@ function renderActionRail(){
     : atRisk.map(p => `<div class="rail-item" data-jump="health" style="border-color:${p.score<50?'#B23A2E':'#B4720A'}">
         <div class="r-title">${p.name}</div><div class="r-sub">Score ${p.score} · ${p.level}</div></div>`).join('');
   html += `</div><div class="rail-group"><h4>Action Deadlines <button type="button" class="rail-info" id="railInfoBtn" aria-expanded="false" aria-label="Explain estimated action-deadline methodology">ⓘ</button></h4>
-    <div id="railInfoText" class="rail-info-text" style="display:none;">Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months.</div>
+    <div id="railInfoText" class="rail-info-text" style="display:none;">Not a raw expiry countdown. Factors in how long each specific authority typically takes to review a renewal, so something can show as already overdue even if the license itself doesn't expire for months. Excludes anything already filed, see Renewals Awaiting Decision below for those.</div>
     <div class="rail-scope">Based on authority-specific lead time, not just days to expiry</div>`;
   html += soon.length === 0
     ? `<div class="rail-empty">Nothing needs action to start in the next 120 days.</div>`
@@ -917,6 +965,17 @@ function renderActionRail(){
         </div>`;
       }).join('');
   html += `</div>`;
+
+  if(awaitingDecision.length > 0){
+    html += `<div class="rail-group"><h4>Renewals Awaiting Decision</h4>
+      <div class="rail-scope">Already filed, waiting on the authority, not on you</div>`;
+    html += awaitingDecision.map(r => `<div class="rail-item" data-jump="register" data-filter="${r.product}" style="border-color:#64748B">
+        <div class="r-title">${r.product}</div>
+        <div class="r-sub">${r.country} · ${r.authority || 'unspecified authority'} · filed ${r.daysSinceFiled}d ago</div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+
   document.getElementById('railContent').innerHTML = html;
 
   document.querySelectorAll('.rail-item[data-jump="health"]').forEach(el => el.addEventListener('click', () => switchTab('health')));
@@ -1262,11 +1321,13 @@ document.getElementById('regForm').addEventListener('submit', function(e){
   const expiryDate = document.getElementById('inExpiry').value || null;
   const regNumber = document.getElementById('inRegNumber').value.trim();
   const authority = document.getElementById('inAuthority').value.trim();
+  const renewalFiled = document.getElementById('inRenewalFiled').value || null;
   if(!product || !country) return;
-  registrations.push({product, country, status, expiryDate, regNumber, authority});
+  registrations.push({product, country, status, expiryDate, regNumber, authority, renewalFiled});
   persist(); populateFormOptions(); renderAll();
   document.getElementById('inProduct').value=''; document.getElementById('inExpiry').value='';
   document.getElementById('inRegNumber').value=''; document.getElementById('inAuthority').value='';
+  document.getElementById('inRenewalFiled').value='';
 });
 
 const STORAGE_KEY = "regatlas:registrations";
@@ -1350,7 +1411,7 @@ function isDuplicate(row){
 }
 
 function validateRowColumns(cols){
-  const [productRaw, countryRaw, statusRaw, expiryRaw, regNumberRaw, authorityRaw] = cols.map(c => (c===undefined||c===null) ? "" : String(c).trim());
+  const [productRaw, countryRaw, statusRaw, expiryRaw, regNumberRaw, authorityRaw, renewalFiledRaw] = cols.map(c => (c===undefined||c===null) ? "" : String(c).trim());
   if(!productRaw || !countryRaw || !statusRaw) return {error: "missing product, country, or status"};
 
   const country = countryLookup[countryRaw.toLowerCase()];
@@ -1369,7 +1430,16 @@ function validateRowColumns(cols){
     expiryDate = normalizeDate(d);
   }
 
-  return {row: {product: productRaw, country, status, expiryDate, regNumber: (regNumberRaw||"").trim(), authority: (authorityRaw||"").trim()}};
+  // optional 7th column, backward compatible: older 6-column pastes/files
+  // simply won't have this and renewalFiled stays null
+  let renewalFiled = null;
+  if(renewalFiledRaw && renewalFiledRaw.trim()){
+    const rd = parseFlexibleDate(renewalFiledRaw);
+    if(!rd) return {error: `renewal-filed date "${renewalFiledRaw}" not recognized as a date`};
+    renewalFiled = normalizeDate(rd);
+  }
+
+  return {row: {product: productRaw, country, status, expiryDate, regNumber: (regNumberRaw||"").trim(), authority: (authorityRaw||"").trim(), renewalFiled}};
 }
 
 document.getElementById('btnBulkImport').addEventListener('click', function(){
@@ -1474,9 +1544,9 @@ document.getElementById('bulkFileInput').addEventListener('change', function(e){
 });
 
 document.getElementById('btnExport').addEventListener('click', function(){
-  const rows = [["Product","Country","Region","Status","Expiry Date","Registration Number","Health Authority"]];
+  const rows = [["Product","Country","Region","Status","Expiry Date","Registration Number","Health Authority","Renewal Filed Date"]];
   registrations.forEach(r => { const region=(COUNTRY_META[r.country]||{}).region||"";
-    rows.push([r.product, r.country, region, statusLabel[r.status], r.expiryDate || "", r.regNumber || "", r.authority || ""]); });
+    rows.push([r.product, r.country, region, statusLabel[r.status], r.expiryDate || "", r.regNumber || "", r.authority || "", r.renewalFiled || ""]); });
   const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob([csv], {type:"text/csv"});
   const url = URL.createObjectURL(blob);
