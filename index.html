@@ -828,7 +828,9 @@ function renderRegisterTable(){
               ? `<button type="button" class="mark-filed-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark renewal filed</button>`
               : r.status==='notfiled'
                 ? `<button type="button" class="mark-asfiled-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--accent);background:var(--accent-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark as filed</button>`
-                : ''
+                : r.status==='pending'
+                  ? `<button type="button" class="mark-approved-btn" data-idx="${idx}" style="margin-top:4px;font-size:.66rem;font-family:var(--sans);font-weight:600;color:var(--green);background:var(--green-tint);border:1px solid var(--border-strong);border-radius:4px;padding:2px 7px;cursor:pointer;">Mark as approved</button>`
+                  : ''
         }</td>
         <td data-label="Expiry" style="font-family:var(--mono);font-size:.76rem;color:var(--muted)">${r.expiryDate || "N/A"}</td>
         <td data-label=""><button class="row-del" data-idx="${idx}" title="Remove" aria-label="Remove ${r.product} registration for ${r.country}">×</button></td>
@@ -888,6 +890,41 @@ function renderRegisterTable(){
       if(input === null) return; // cancelled, no change made
       registrations[idx].status = "pending";
       if(input.trim() !== "") registrations[idx].regNumber = input.trim();
+      persist(); populateFormOptions(); renderAll();
+    });
+  });
+
+  document.querySelectorAll('.mark-approved-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      const row = registrations[idx];
+
+      let expiryInput;
+      while(true){
+        expiryInput = prompt(
+          "Approved. What's the new expiry date? (required, any common date format is fine)",
+          row.expiryDate || ""
+        );
+        if(expiryInput === null) return; // cancelled, no change made
+        if(expiryInput.trim() === ""){
+          alert("An approved registration needs an expiry date. Enter one, or cancel to leave this Pending for now.");
+          continue;
+        }
+        const d = parseFlexibleDate(expiryInput);
+        if(!d){ alert(`"${expiryInput}" wasn't recognized as a date. Try again.`); continue; }
+        row.expiryDate = normalizeDate(d);
+        break;
+      }
+
+      if(!row.regNumber){
+        const regInput = prompt(
+          "Registration/license number, if one was assigned on approval (optional, leave blank to add later):",
+          ""
+        );
+        if(regInput !== null && regInput.trim() !== "") row.regNumber = regInput.trim();
+      }
+
+      row.status = "approved";
       persist(); populateFormOptions(); renderAll();
     });
   });
